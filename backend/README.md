@@ -13,6 +13,14 @@ npm run dev
 
 The API runs on `http://localhost:3000` by default.
 
+## MySQL setup
+
+Create a MySQL database named `weatherwise`, create a database user, and set
+`DATABASE_URL` in `.env` using the connection string shown in `.env.example`.
+
+The MySQL connection pool is available through `src/db.js`. Database-backed
+features and schema migrations will be added in the next backend tasks.
+
 ## Endpoints
 
 - `GET /` - API service information
