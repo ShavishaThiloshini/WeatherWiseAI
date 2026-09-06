@@ -16,13 +16,13 @@ This document translates the Project Requirement Document (PRD) into a concrete 
 
 ## 2. System Architecture Overview
 
-WeatherWise AI is a three-tier system: a React Native mobile client, a Node.js/Express backend API, and a Python/FastAPI AI recommendation microservice, backed by PostgreSQL and supporting services for maps, weather data, and push notifications.
+WeatherWise AI is a three-tier system: a React Native mobile client, a Node.js/Express backend API, and a Python/FastAPI AI recommendation microservice, backed by MySQL and supporting services for maps, weather data, and push notifications.
 
 ```
 React Native App (TypeScript)
         |  HTTPS / REST + JWT
         v
-Node.js + Express API  <----->  PostgreSQL
+Node.js + Express API  <----->  MySQL
    |            |
    |            +----> Firebase Cloud Messaging (push notifications)
    |            +----> Weather Provider API (current + forecast)
@@ -42,7 +42,7 @@ The mobile app never talks to the weather provider, maps provider, or AI engine 
 |---|---|---|
 | Mobile App | React Native + TypeScript | Single codebase for Android and iOS; typed code reduces runtime errors across a 4-person rotating team. |
 | Backend API | Node.js + Express.js | Lightweight, well-documented, fast to build REST endpoints against within a 30-day window. |
-| Database | PostgreSQL | Relational integrity for users, locations, plants, and history; strong support for JSON columns where flexibility is needed. |
+| Database | MySQL | Relational integrity for users, locations, plants, and history; widely supported and straightforward to operate for the MVP. |
 | AI / Recommendation Engine | Python + FastAPI | Python's data/ML ecosystem suits the rule engine and any later ML-assisted scoring; FastAPI is fast to stand up as an internal microservice. |
 | Authentication | JWT (JSON Web Tokens) | Stateless auth that scales across mobile sessions without server-side session storage. |
 | Notifications | Firebase Cloud Messaging (FCM) | Cross-platform push notifications for severe-weather and personalized alerts. |
@@ -94,7 +94,7 @@ Representative endpoints — the full contract (request/response schemas) will b
 
 ## 8. Database
 
-PostgreSQL is the system of record for users, locations, plants, preferences, notifications, and weather history. Full entity definitions, fields, and relationships are specified in the Backend Schema Document (Document 05).
+MySQL is the system of record for users, locations, plants, preferences, notifications, and weather history. Full entity definitions, fields, and relationships are specified in the Backend Schema Document (Document 05).
 
 ## 9. Security
 

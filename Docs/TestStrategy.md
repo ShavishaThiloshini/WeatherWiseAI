@@ -31,7 +31,7 @@ The strategy is risk-based. Weather interpretation, safety alerts, location priv
 
 - React Native navigation, screens, components, permissions, accessibility, and state handling.
 - Express REST endpoints, validation, authentication, authorization, rate limiting, caching, and error responses.
-- PostgreSQL persistence, relationships, ownership rules, and migration/seed behavior.
+- MySQL persistence, relationships, ownership rules, and migration/seed behavior.
 - Weather-provider and maps-provider adapters, including timeout, malformed response, rate-limit, and unavailable-provider behavior.
 - FastAPI rule engine, personalized recommendations, activity scores, plant-care advice, alerts, and grounded assistant responses.
 - FCM notification creation, delivery handoff, read state, and deep links.
@@ -343,6 +343,6 @@ For each later run, record:
 | Supported mobile matrix | Minimum: one Android emulator/device, one iOS simulator/device, and one narrow-screen target; record exact OS versions at setup. | Frontend owner / before first mobile release candidate |
 | Performance targets | Agree and record measurable cold-start, cached Home, API, and assistant response targets before performance testing begins. | Full team / before Day 10 regression |
 | External providers and mocks | Use sandbox/test credentials and mocked provider responses for automated tests; reserve live-provider checks for staging. | Backend and AI owners / before first integration test |
-| Database choice | Follow the implementation that is actually merged. The current Day 1 backend uses MySQL, while the TRD specifies PostgreSQL; schema and database test fixtures must be updated immediately when the team finalizes this choice. | Backend owner / before Day 2 schema work |
+| Database choice | MySQL is the confirmed project database. Schema and database test fixtures must use the MySQL connection and SQL behavior. | Backend owner / before Day 2 schema work |
 
 These are recorded decisions and follow-up gates rather than blockers for completing the Day 1 test strategy document. Any overdue item must be tracked as a release risk.

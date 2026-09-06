@@ -12,7 +12,7 @@
 
 ## 1. Purpose
 
-This document defines the PostgreSQL data model for WeatherWise AI: every entity, its fields, keys, and relationships. It is the reference for the Backend rotation days and the foundation the AI engine and Implementation Plan build against.
+This document defines the MySQL data model for WeatherWise AI: every entity, its fields, keys, and relationships. It is the reference for the Backend rotation days and the foundation the AI engine and Implementation Plan build against.
 
 ## 2. Entity Overview
 

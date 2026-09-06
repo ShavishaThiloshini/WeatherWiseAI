@@ -33,7 +33,7 @@ Set up the mobile app, backend, database, and AI service skeletons. Complete aut
 
 | Day | Frontend | Backend | AI | Testing |
 |---|---|---|---|---|
-| Day 1 | Shavi - React Native scaffold, navigation, design tokens | Rahavi - Express and PostgreSQL setup | Danu - FastAPI service scaffold | Ruvethika - Test framework and Postman skeleton |
+| Day 1 | Shavi - React Native scaffold, navigation, design tokens | Rahavi - Express and MySQL setup | Danu - FastAPI service scaffold | Ruvethika - Test framework and Postman skeleton |
 | Day 2 | Rahavi - Login/Register screens and auth wiring | Danu - User table and auth endpoints | Ruvethika - Rule-engine threshold model | Shavi - Register/login test cases |
 | Day 3 | Danu - Home Dashboard shell | Ruvethika - Location table and CRUD endpoints | Shavi - Heat and rain rules with tests | Rahavi - Location CRUD test cases |
 | Day 4 | Ruvethika - Location permission and manual search | Shavi - Weather adapter and current-weather stub | Rahavi - Wind, storm, cold, and UV rules | Danu - Weather adapter failure tests |
