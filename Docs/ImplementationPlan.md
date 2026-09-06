@@ -1,144 +1,142 @@
- 
- # WeatherWise AI - 30-Day Implementation Plan
+# WeatherWise AI
+### Implementation Plan
+*What are we doing during the 30 days?*
 
- **Team:** Danu, Ruvethika, Shavi, Rahavi  
- **Workflow:** Frontend, Backend, AI, and Testing rotate every four days.
+| Field | Detail |
+|---|---|
+| Project | WeatherWise AI (Smart Weather Assistant) |
+| Document | 06 of 6 - Implementation Plan |
+| Team | Shavi, Rahavi, Danu, Ruvethika |
+| Version | 1.0 |
+| Status | Draft for team review |
 
- ## Danu's Tasks
+## 1. Purpose
 
- - Day 1: Design smart recommendation architecture and rule categories.
- - Day 2: Design backend architecture and API modules.
- - Day 3: Build reusable UI components and design system.
- - Day 4: Test authentication and location requirements.
- - Day 5: Create the initial weather-to-recommendation engine.
- - Day 6: Handle location and user APIs.
- - Day 7: Build current weather cards.
- - Day 8: Create heat and UV interpretation rules.
- - Day 9: Test hourly forecast behavior.
- - Day 10: Build the forecast-based recommendation engine.
- - Day 11: Build clothing recommendation API.
- - Day 12: Build rain and umbrella recommendation UI.
- - Day 13: Test heat and UV behavior.
- - Day 14: Build the activity scoring algorithm.
- - Day 15: Integrate recommendation APIs.
- - Day 16: Build heat alert UI.
- - Day 17: Test heavy rain warnings.
- - Day 18: Create thunderstorm and wind risk rules.
- - Day 19: Handle cold-weather data.
- - Day 20: Build Safety Center and alerts screen.
- - Day 21: Test travel-risk behavior.
- - Day 22: Recommend the best travel time.
- - Day 23: Build plant data APIs.
- - Day 24: Build interactive weather map.
- - Day 25: Create location-specific recommendations.
- - Day 26: Build user preference APIs.
- - Day 27: Build weather-aware question answering.
- - Day 28: Build weather history and trends dashboard.
- - Day 29: Integrate the AI engine with weather and backend services.
- - Day 30: Verify recommendation accuracy and AI edge cases.
+This plan turns the 30-day roadmap into day-by-day tasks, assigned according to the team's rotating-responsibility model. Every member cycles through Frontend, Backend, AI, and Testing on a repeating four-day pattern. Days 29 and 30 are reserved for full-team integration, testing, and deployment.
 
- ## Ruvethika's Tasks
+## 2. Rotation Pattern (Days 1-28)
 
- - Day 1: Prepare test strategy, test cases, and QA checklist.
- - Day 2: Define recommendation inputs, outputs, and data flow.
- - Day 3: Design PostgreSQL schema and migrations.
- - Day 4: Build login and registration UI.
- - Day 5: Perform first integration testing.
- - Day 6: Test location permission scenarios.
- - Day 7: Define weather interpretation rules.
- - Day 8: Build weather data processing and service layer.
- - Day 9: Build hourly forecast UI.
- - Day 10: Test forecast behavior.
- - Day 11: Create clothing decision rules.
- - Day 12: Process rain probability data.
- - Day 13: Build hydration and heat warning UI.
- - Day 14: Test walking, running, and cycling scores.
- - Day 15: Combine multiple weather factors.
- - Day 16: Build heat threshold service.
- - Day 17: Build heavy rain alert UI.
- - Day 18: Test severe-weather scenarios.
- - Day 19: Create cold-weather clothing recommendations.
- - Day 20: Build alerts API.
- - Day 21: Build Travel Safety UI.
- - Day 22: Test destination comparison.
- - Day 23: Build plant watering recommendations.
- - Day 24: Integrate map and weather data.
- - Day 25: Test location switching.
- - Day 26: Build personalized recommendation logic.
- - Day 27: Build AI chat and assistant interface.
- - Day 28: Store weather history.
- - Day 29: Track and retest full-system integration bugs.
- - Day 30: Run functional, UI, safety, and performance regression testing.
+| Cycle Day | Frontend | Backend | AI | Testing |
+|---|---|---|---|---|
+| 1st day of cycle | Shavi | Rahavi | Danu | Ruvethika |
+| 2nd day of cycle | Rahavi | Danu | Ruvethika | Shavi |
+| 3rd day of cycle | Danu | Ruvethika | Shavi | Rahavi |
+| 4th day of cycle | Ruvethika | Shavi | Rahavi | Danu |
 
- ## Shavi's Tasks
+The first-day pattern applies to Days 1, 5, 9, 13, 17, 21, and 25. The other patterns repeat in the same way through Day 28.
 
- - Day 1: Set up React Native, TypeScript, and the app structure.
- - Day 2: Review architecture and identify initial risks.
- - Day 3: Define weather-condition categories and recommendation rules.
- - Day 4: Implement authentication APIs.
- - Day 5: Build the basic home dashboard.
- - Day 6: Build location permission UI.
- - Day 7: Test weather API responses.
- - Day 8: Validate weather values and edge cases.
- - Day 9: Build hourly forecast API.
- - Day 10: Build the 7-day or multi-day forecast UI.
- - Day 11: Test clothing scenarios.
- - Day 12: Build the umbrella and rain decision engine.
- - Day 13: Process heat and UV data.
- - Day 14: Build outdoor activity cards.
- - Day 15: Perform full Smart Advice testing.
- - Day 16: Build heat-risk calculation.
- - Day 17: Build rain alert API.
- - Day 18: Build severe-weather alert UI.
- - Day 19: Test cold-weather behavior.
- - Day 20: Build overall weather risk classification.
- - Day 21: Build destination weather API.
- - Day 22: Build current-versus-destination comparison.
- - Day 23: Test plant-care scenarios.
- - Day 24: Interpret map-based weather conditions.
- - Day 25: Build saved locations UI.
- - Day 26: Test user preferences.
- - Day 27: Test the AI assistant.
- - Day 28: Build personalized trends and recommendations.
- - Day 29: Integrate the frontend with backend services.
- - Day 30: Complete UI testing, final mobile build, documentation, and demo preparation.
+## 3. Phase-by-Phase Day Plan
 
- ## Rahavi's Tasks
+### Phase 1 - Foundation (Days 1-5)
 
- - Day 1: Set up Node.js, Express, and API structure.
- - Day 2: Create navigation structure and screen routing.
- - Day 3: Test initial frontend and backend setup.
- - Day 4: Define location-aware recommendation requirements.
- - Day 5: Connect database and authentication.
- - Day 6: Implement location-aware recommendation logic.
- - Day 7: Integrate the weather API.
- - Day 8: Build temperature, feels-like, humidity, wind, UV, and detail views.
- - Day 9: Create time-based recommendation logic.
- - Day 10: Process multi-day forecast data.
- - Day 11: Build clothing recommendation card.
- - Day 12: Test rain recommendations.
- - Day 13: Build hydration and heat recommendation logic.
- - Day 14: Build activity data service.
- - Day 15: Complete the Smart Advice section.
- - Day 16: Test heat warning scenarios.
- - Day 17: Build rain risk classification.
- - Day 18: Process severe-weather data.
- - Day 19: Build cold-weather warning UI.
- - Day 20: Perform end-to-end safety testing.
- - Day 21: Build travel risk scoring.
- - Day 22: Process destination weather.
- - Day 23: Build plant management UI.
- - Day 24: Test map functionality.
- - Day 25: Build location CRUD APIs.
- - Day 26: Build preferences and profile UI.
- - Day 27: Integrate the AI assistant API.
- - Day 28: Test history and personalization.
- - Day 29: Integrate the database and APIs.
- - Day 30: Complete security, API testing, deployment, and production environment validation.
+Set up the mobile app, backend, database, and AI service skeletons. Complete authentication, saved locations, and the first weather-provider connection end to end.
 
- ## Day 30 Shared Checks
+| Day | Frontend | Backend | AI | Testing |
+|---|---|---|---|---|
+| Day 1 | Shavi - React Native scaffold, navigation, design tokens | Rahavi - Express and PostgreSQL setup | Danu - FastAPI service scaffold | Ruvethika - Test framework and Postman skeleton |
+| Day 2 | Rahavi - Login/Register screens and auth wiring | Danu - User table and auth endpoints | Ruvethika - Rule-engine threshold model | Shavi - Register/login test cases |
+| Day 3 | Danu - Home Dashboard shell | Ruvethika - Location table and CRUD endpoints | Shavi - Heat and rain rules with tests | Rahavi - Location CRUD test cases |
+| Day 4 | Ruvethika - Location permission and manual search | Shavi - Weather adapter and current-weather stub | Rahavi - Wind, storm, cold, and UV rules | Danu - Weather adapter failure tests |
+| Day 5 | Shavi - Tab navigation polish | Rahavi - Validation, error format, and rate limits | Danu - Advice endpoint wiring | Ruvethika - Foundation regression pass |
 
- - Test every major feature from location detection through the AI Weather Assistant.
- - Test authentication, permissions, user data, API failures, missing forecasts, and invalid responses.
- - Test heat, rain, wind, thunderstorm, cold-weather, notification, accessibility, and offline scenarios.
- - Complete the README, test report, production build, and final demonstration.
+### Phase 2 - Core Weather (Days 6-10)
+
+Deliver current conditions, hourly forecasts, and multi-day forecasts backed by cached weather-provider data.
+
+| Day | Frontend | Backend | AI | Testing |
+|---|---|---|---|---|
+| Day 6 | Rahavi - Weather Details screen | Danu - Current-weather endpoint and snapshot cache | Ruvethika - Rules consume live payloads | Shavi - Current-weather edge cases |
+| Day 7 | Danu - Hourly Forecast strip | Ruvethika - Hourly forecast endpoint and cache | Shavi - Rain-timing advice | Rahavi - Hourly forecast and caching tests |
+| Day 8 | Ruvethika - Multi-Day Forecast and Day Detail | Shavi - Daily forecast endpoint | Rahavi - Multi-day trend awareness | Danu - Multi-day forecast tests |
+| Day 9 | Shavi - Rain-probability indicators | Rahavi - Rain fields in forecast responses | Danu - Rain-probability thresholds | Ruvethika - End-to-end rain display test |
+| Day 10 | Rahavi - Loading, error, and offline states | Danu - Scheduled cache-refresh job | Ruvethika - Refine outputs with real data | Shavi - Core Weather regression pass |
+
+### Phase 3 - Smart Recommendations (Days 11-15)
+
+Build explainable advice for clothing, umbrellas, hydration, and outdoor activity scoring.
+
+| Day | Frontend | Backend | AI | Testing |
+|---|---|---|---|---|
+| Day 11 | Danu - Smart Advice dashboard cards | Ruvethika - Advice endpoint proxy | Shavi - Clothing and umbrella logic | Rahavi - Clothing and umbrella scenarios |
+| Day 12 | Ruvethika - Advice Detail with reasoning | Shavi - Persist advice for history/debug | Rahavi - Hydration and sunscreen logic | Danu - Hydration and sunscreen scenarios |
+| Day 13 | Shavi - Activity Score UI and best time | Rahavi - Activity-score data plumbing | Danu - Outdoor Activity Score logic | Ruvethika - Activity Score accuracy |
+| Day 14 | Rahavi - Wire cards to advice endpoint | Danu - Cache advice responses | Ruvethika - Unified explainable advice payload | Shavi - Advice end-to-end test |
+| Day 15 | Danu - Severity and color styling | Ruvethika - AI-unavailable error handling | Shavi - Tune thresholds | Rahavi - Smart Recommendations regression pass |
+
+### Phase 4 - Safety (Days 16-20)
+
+Implement severe-weather detection, explainable alerts, the Safety Center, and push notifications.
+
+| Day | Frontend | Backend | AI | Testing |
+|---|---|---|---|---|
+| Day 16 | Ruvethika - Safety Center screen | Shavi - Alerts endpoint | Rahavi - Heat and heavy-rain rules | Danu - Alert condition tests |
+| Day 17 | Shavi - Alert Detail screen | Rahavi - Alert generation and thresholds | Danu - Thunderstorm and strong-wind rules | Ruvethika - Push delivery and deep-link tests |
+| Day 18 | Rahavi - Home alert banner | Danu - FCM push wiring | Ruvethika - Cold and high-UV rules | Shavi - De-duplication and severity tests |
+| Day 19 | Danu - Notification deep link | Ruvethika - Notification table and endpoints | Shavi - Severity scoring | Rahavi - Notification read/unread tests |
+| Day 20 | Ruvethika - Empty state and severity polish | Shavi - Alert de-duplication | Rahavi - Explanation wording review | Danu - Safety regression pass |
+
+### Phase 5 - Travel, Plants, and Maps (Days 21-25)
+
+Add travel-risk comparison, the interactive weather map, and plant-care recommendations.
+
+| Day | Frontend | Backend | AI | Testing |
+|---|---|---|---|---|
+| Day 21 | Shavi - Travel and Map tab shell | Rahavi - Travel comparison endpoint | Danu - Travel risk rules | Ruvethika - Travel comparison accuracy |
+| Day 22 | Rahavi - Travel Risk Result card | Danu - Risk scoring and persistence | Ruvethika - Risk factors and explanations | Shavi - Risk-level tests |
+| Day 23 | Danu - Weather Map with overlays | Ruvethika - Maps provider integration | Shavi - Suggested departure-time logic | Rahavi - Map accuracy and performance |
+| Day 24 | Ruvethika - My Plants screen and add flow | Shavi - Plant CRUD endpoints | Rahavi - Plant watering rules | Danu - Plant CRUD and watering tests |
+| Day 25 | Shavi - Multiple Locations management | Rahavi - Watering-recommendation plumbing | Danu - Species-specific rule tuning | Ruvethika - Travel, Plants, and Maps regression pass |
+
+### Phase 6 - Personalization and AI (Days 26-28)
+
+Add personalization, the AI Weather Assistant, and Weather History.
+
+| Day | Frontend | Backend | AI | Testing |
+|---|---|---|---|---|
+| Day 26 | Rahavi - Preferences screen | Danu - UserPreference endpoints | Ruvethika - Preference-aware thresholds | Shavi - Preference effect tests |
+| Day 27 | Danu - AI Assistant chat screen | Ruvethika - Assistant endpoint proxy | Shavi - Grounded natural-language answers | Rahavi - Assistant groundedness tests |
+| Day 28 | Ruvethika - Weather History screen | Shavi - History aggregation endpoint | Rahavi - Personalization review | Danu - History and seed-data tests |
+
+## 4. Day 29 - Full Integration
+
+All four members connect the modules for the first time.
+
+```text
+Frontend <----> Backend <----> Database
+				   |
+				   +----> Weather Provider API
+				   +----> AI / Recommendation Engine
+```
+
+- Confirm that every requirement from FR-01 through FR-20 is reachable end to end.
+- Resolve authentication, response-shape, timing, and integration defects.
+- Freeze the feature set for Day 30 testing.
+
+## 5. Day 30 - Final Testing and Deployment
+
+- Run functional tests across all 20 functional requirements.
+- Verify Smart Advice, alerts, and the AI Assistant remain accurate and explainable.
+- Run API, security, input-validation, and rate-limit tests.
+- Test loading, empty, error, offline, and accessibility states.
+- Measure cold-start and cached-versus-live response times.
+- Fix release blockers, deploy the demo build, complete documentation, and rehearse the presentation.
+
+## 6. Milestones and Deliverables
+
+| Milestone | Day | Deliverable |
+|---|---|---|
+| Foundation complete | 5 | Auth, saved locations, and weather-provider connection |
+| Core Weather complete | 10 | Current conditions and hourly/multi-day forecasts |
+| Smart Recommendations complete | 15 | Explainable Smart Advice dashboard |
+| Safety complete | 20 | Severe-weather alerts and push notifications |
+| Travel, Plants, and Maps complete | 25 | Travel risk, weather map, and plant care |
+| Personalization and AI complete | 28 | Preferences, AI Assistant, and Weather History |
+| Full Integration | 29 | All modules connected |
+| Final Demo Ready | 30 | Tested, deployed build and rehearsed presentation |
+
+## 7. Risks and Mitigation
+
+- **Weather-provider rate limits:** Use the WeatherSnapshot and ForecastCache layers from Phase 2 onward.
+- **Role handoff friction:** Keep modules small and require pull-request review before merging.
+- **AI service delays:** Build the rule engine early behind a stable endpoint contract.
+- **Integration surprises on Day 29:** Fix API contracts in Phase 1 and test each endpoint as it is built.
