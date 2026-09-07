@@ -2,8 +2,10 @@ const cors = require('cors');
 const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const swaggerUi = require('swagger-ui-express');
 
 const apiRouter = require('./routes');
+const swaggerSpec = require('./swagger');
 const { notFoundHandler, errorHandler } = require('./middleware/error-handler');
 
 const app = express();
@@ -18,8 +20,15 @@ app.get('/', (req, res) => {
   res.json({
     name: 'WeatherWise AI API',
     status: 'running',
-    health: '/api/v1/health'
+    health: '/api/v1/health',
+    documentation: '/api-docs'
   });
+});
+
+// Swagger/OpenAPI documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/api-docs.json', (req, res) => {
+  res.json(swaggerSpec);
 });
 
 app.use('/api/v1', apiRouter);
