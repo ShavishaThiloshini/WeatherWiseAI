@@ -1,4 +1,10 @@
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+function normalizeApiKey(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^['"]|['"]$/g, '');
+}
+
+const GEMINI_API_KEY = normalizeApiKey(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 const GEMINI_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS) || 15000;
 
@@ -70,11 +76,12 @@ async function askGeminiAssistant({ message, context }) {
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`,
       {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY,
       },
       signal: controller.signal,
       body: JSON.stringify({
@@ -127,14 +134,20 @@ async function askGeminiAssistant({ message, context }) {
       isFallback: false,
     };
   } catch (error) {
+    const reason = error?.message ? String(error.message) : 'Gemini unavailable.';
+    const isInvalidKey = /API key not valid|API_KEY_INVALID|INVALID_ARGUMENT/i.test(reason);
+
     return {
       provider: 'gemini',
       model: GEMINI_MODEL,
-      answer:
-        'I could not reach Gemini. Check your API key and network connection, then try again.',
-      reasoning: error?.message ? String(error.message) : 'Gemini unavailable.',
+      answer: isInvalidKey
+        ? 'Gemini rejected the configured API key.'
+        : 'I could not reach Gemini. Check your API key and network connection, then try again.',
+      reasoning: reason,
       safety: 'No AI response was generated.',
-      suggestedAction: 'Verify GEMINI_API_KEY in backend/.env and restart the backend.',
+      suggestedAction: isInvalidKey
+        ? 'Create a new Gemini API key in Google AI Studio, update backend/.env, and restart the backend.'
+        : 'Verify GEMINI_API_KEY in backend/.env and restart the backend.',
       isFallback: true,
     };
   } finally {
