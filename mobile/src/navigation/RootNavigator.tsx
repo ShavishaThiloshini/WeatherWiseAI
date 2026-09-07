@@ -25,6 +25,7 @@ import { PlantsScreen } from '../screens/PlantsScreen';
 import { WeatherMapScreen } from '../screens/WeatherMapScreen';
 import { AIAssistantScreen } from '../screens/AIAssistantScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { SafetyScreen } from '../screens/SafetyScreen';
 
 import { COLORS, TYPOGRAPHY } from '../constants/theme';
 
@@ -35,16 +36,20 @@ import { COLORS, TYPOGRAPHY } from '../constants/theme';
 export type RootTabParamList = {
   Home: undefined;
   Forecast: undefined;
-  Map: undefined;
-  Assistant: undefined;
-  More: undefined;
+  Safety: undefined;
+  TravelMap: undefined;
+  Profile: undefined;
 };
 
-export type MoreStackParamList = {
-  MoreHome: undefined;
+export type TravelMapStackParamList = {
   Travel: undefined;
+  Map: undefined;
+};
+
+export type ProfileStackParamList = {
+  ProfileHome: undefined;
   Plants: undefined;
-  Profile: undefined;
+  Assistant: undefined;
 };
 
 // ---------------------------------------------------------------------------
@@ -54,20 +59,20 @@ export type MoreStackParamList = {
 const TAB_ICONS: Record<string, string> = {
   Home: '🏠',
   Forecast: '📅',
-  Map: '🗺️',
-  Assistant: '🤖',
-  More: '☰',
+  Safety: '🛡️',
+  TravelMap: '🧭',
+  Profile: '⚙️',
 };
 
 // ---------------------------------------------------------------------------
-// More stack (secondary screens accessible via the More tab)
+// Travel and map stack
 // ---------------------------------------------------------------------------
 
-const MoreStack = createNativeStackNavigator<MoreStackParamList>();
+const TravelMapStack = createNativeStackNavigator<TravelMapStackParamList>();
 
-function MoreStackNavigator() {
+function TravelMapNavigator() {
   return (
-    <MoreStack.Navigator
+    <TravelMapStack.Navigator
       screenOptions={{
         headerStyle: { backgroundColor: COLORS.background },
         headerTintColor: COLORS.textPrimary,
@@ -78,11 +83,35 @@ function MoreStackNavigator() {
         contentStyle: { backgroundColor: COLORS.background },
       }}
     >
-      {/* A minimal "More" landing is handled via the parent tab — just expose sub-screens */}
-      <MoreStack.Screen name="Travel" component={TravelScreen} options={{ title: 'Travel Safety' }} />
-      <MoreStack.Screen name="Plants" component={PlantsScreen} options={{ title: 'Plant Care' }} />
-      <MoreStack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile & Settings' }} />
-    </MoreStack.Navigator>
+      <TravelMapStack.Screen name="Travel" component={TravelScreen} options={{ title: 'Travel Safety' }} />
+      <TravelMapStack.Screen name="Map" component={WeatherMapScreen} options={{ title: 'Weather Map' }} />
+    </TravelMapStack.Navigator>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Profile stack (secondary screens accessible from the Profile tab)
+// ---------------------------------------------------------------------------
+
+const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
+
+function ProfileNavigator() {
+  return (
+    <ProfileStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: COLORS.background },
+        headerTintColor: COLORS.textPrimary,
+        headerTitleStyle: {
+          fontWeight: TYPOGRAPHY.fontWeight.semiBold,
+          fontSize: TYPOGRAPHY.fontSize.l,
+        },
+        contentStyle: { backgroundColor: COLORS.background },
+      }}
+    >
+      <ProfileStack.Screen name="ProfileHome" component={ProfileScreen} options={{ title: 'Profile & Settings' }} />
+      <ProfileStack.Screen name="Plants" component={PlantsScreen} options={{ title: 'Plant Care' }} />
+      <ProfileStack.Screen name="Assistant" component={AIAssistantScreen} options={{ title: 'AI Assistant' }} />
+    </ProfileStack.Navigator>
   );
 }
 
@@ -121,14 +150,9 @@ export function RootNavigator() {
       >
         <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
         <Tab.Screen name="Forecast" component={ForecastScreen} options={{ title: 'Forecast' }} />
-        <Tab.Screen name="Map" component={WeatherMapScreen} options={{ title: 'Map' }} />
-        <Tab.Screen name="Assistant" component={AIAssistantScreen} options={{ title: 'AI' }} />
-        {/* "More" tab exposes Travel, Plants, Profile via a nested stack */}
-        <Tab.Screen
-          name="More"
-          component={MoreStackNavigator}
-          options={{ title: 'More' }}
-        />
+        <Tab.Screen name="Safety" component={SafetyScreen} options={{ title: 'Safety' }} />
+        <Tab.Screen name="TravelMap" component={TravelMapNavigator} options={{ title: 'Travel & Map' }} />
+        <Tab.Screen name="Profile" component={ProfileNavigator} options={{ title: 'Profile' }} />
       </Tab.Navigator>
     </NavigationContainer>
   );
