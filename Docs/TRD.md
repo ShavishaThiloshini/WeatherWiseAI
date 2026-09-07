@@ -68,10 +68,14 @@ The mobile app never talks to the weather provider, maps provider, or AI engine 
 
 The recommendation engine is a separate FastAPI service so it can be developed and tested independently during the "AI" day of each team member's rotation.
 
+The canonical recommendation request, response, supported intents, and data
+flow are defined in [Recommendation Architecture](RecommendationArchitecture.md).
+
 - **Rule engine:** deterministic condition-to-advice mapping (see PRD Section 7) implemented as composable rules, each returning a recommendation plus the triggering factors (for explainability).
 - **AI Assistant:** accepts a natural-language question plus the user's current weather/forecast context, and returns a grounded, weather-aware answer rather than a generic response.
 - **Personalization layer:** adjusts recommendation thresholds using stored user preferences (e.g. cold tolerance, preferred activity times).
 - **Communication:** the Express backend calls the FastAPI service over an internal HTTP endpoint and passes through the response; the mobile app never calls the AI service directly.
+- **Contract boundary:** Express sends normalized current weather, forecast, user preferences, and relevant plant context; FastAPI returns structured recommendations with severity, triggering factors, freshness, and source metadata.
 
 ## 7. API Architecture
 
