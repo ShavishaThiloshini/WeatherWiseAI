@@ -71,7 +71,7 @@ Planned tooling:
 - A device/emulator matrix covering at least one Android and one iOS target, plus a narrow-screen device.
 - Network throttling or request mocking for offline, timeout, and stale-cache scenarios.
 
-The Day 1 backend skeleton currently has no test script or test files. The baseline smoke checks below use the running Express service; automated test-runner setup is scheduled before feature endpoints are merged.
+The Day 1 backend skeleton currently has no test script or test files. The AI service now has a focused pytest suite for deterministic recommendations and the no-key assistant fallback.
 
 ### Day 1 baseline status
 
@@ -83,6 +83,8 @@ The Day 1 backend skeleton currently has no test script or test files. The basel
 | Unknown-route handling | Passed | An unregistered route returns HTTP 404 with the standard `{ error: { code, message } }` shape. |
 | Security headers | Passed | Helmet is registered in the Express app. |
 | Automated test runner | Pending | No test files or `test` script exist in the Day 1 skeleton. |
+| AI recommendation service | Passed | FastAPI exposes `/health`, `/recommend`, and `/assistant`; deterministic rule tests pass 4/4. |
+| Gemini integration | Optional | `/assistant` uses Gemini when `GEMINI_API_KEY` is configured and uses deterministic rules otherwise. |
 | Feature requirements FR-01 to FR-20 | Not executable yet | The corresponding mobile, backend, database, provider, and AI features are scheduled for later implementation days. |
 
 ## 6. Test Data and Fixtures
@@ -306,14 +308,14 @@ Each request should assert the status code, response content type, required resp
 | Field | Value |
 |---|---|
 | Run ID / date | DAY1-SMOKE / 2026-09-06 |
-| Build or commit | Local Day 1 backend skeleton |
-| Environment/device | Windows local development environment; Node.js 20+ target |
+| Build or commit | Local Day 1 backend and AI service |
+| Environment/device | Windows local development environment; Node.js 20+ and Python 3.14 |
 | Tester | Testing rotation |
 | Cases executed | Backend startup, `GET /`, `GET /api/v1/health`, unknown route, JSON error shape, security middleware registration |
-| Passed / failed / blocked | 6 passed / 0 failed / 30 not executable |
+| Passed / failed / blocked | 10 passed / 0 failed / 30 not executable |
 | Defect IDs | None raised from the Day 1 smoke scope |
-| Evidence location | `backend/README.md`, `backend/src/app.js`, `backend/src/routes/index.js`, `backend/src/routes/health.routes.js`, `backend/src/middleware/error-handler.js` |
-| Sign-off | Day 1 QA baseline complete; feature testing remains gated on implementation |
+| Evidence location | `backend/README.md`, `backend/src/app.js`, `backend/src/routes/index.js`, `backend/src/routes/health.routes.js`, `backend/src/middleware/error-handler.js`, `ai/app.py`, `ai/test_app.py` |
+| Sign-off | Day 1 QA baseline and Danu AI service scaffold verified; remaining feature testing remains gated on later implementation |
 
 The six passed checks are the five explicit baseline areas above, with the unknown-route response and standard error shape verified as separate assertions. The remaining catalogue cases are planned tests, not falsely reported execution results.
 
@@ -338,7 +340,7 @@ For each later run, record:
 | Decision or follow-up | Day 1 disposition | Owner / due point |
 |---|---|---|
 | JavaScript test runner | Use Jest or the team's agreed equivalent; add the runner and `npm test` script before the first feature endpoint merge. | Backend owner / before Day 2 auth work |
-| FastAPI test runner | Use pytest with deterministic rule-engine fixtures. | AI owner / before first AI rule merge |
+| FastAPI test runner | Pytest suite added with deterministic rule-engine fixtures and no-key assistant coverage. | AI owner / Day 1 complete |
 | Weather-rule thresholds | Keep thresholds in one shared rule configuration and have boundary tests read from that source. | AI owner / before Day 3 rule tests |
 | Supported mobile matrix | Minimum: one Android emulator/device, one iOS simulator/device, and one narrow-screen target; record exact OS versions at setup. | Frontend owner / before first mobile release candidate |
 | Performance targets | Agree and record measurable cold-start, cached Home, API, and assistant response targets before performance testing begins. | Full team / before Day 10 regression |
