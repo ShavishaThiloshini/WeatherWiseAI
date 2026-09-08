@@ -108,14 +108,22 @@ def recommend(weather: WeatherInput) -> dict[str, Any]:
 
 @app.post("/assistant")
 def assistant(payload: AssistantInput) -> dict[str, str]:
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
     if not api_key:
         recommendations = build_recommendations(payload.weather)
         return {
             "source": "deterministic_rules",
             "answer": recommendations[0]["message"],
         }
-    return {
-        "source": "gemini",
-        "answer": gemini_answer(payload, api_key, os.getenv("GEMINI_MODEL", "gemini-2.0-flash")),
-    }
+
+    try:
+        return {
+            "source": "gemini",
+            "answer": gemini_answer(payload, api_key, os.getenv("GEMINI_MODEL", "gemini-2.0-flash")),
+        }
+    except Exception:
+        recommendations = build_recommendations(payload.weather)
+        return {
+            "source": "deterministic_rules",
+            "answer": recommendations[0]["message"],
+        }

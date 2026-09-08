@@ -26,6 +26,7 @@ import { WeatherMapScreen } from '../screens/WeatherMapScreen';
 import { AIAssistantScreen } from '../screens/AIAssistantScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SafetyScreen } from '../screens/SafetyScreen';
+import { AuthScreen } from '../screens/AuthScreen';
 
 import { COLORS, TYPOGRAPHY } from '../constants/theme';
 
@@ -121,7 +122,19 @@ function ProfileNavigator() {
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
-export function RootNavigator() {
+export function RootNavigator({
+  token,
+  onAuthenticate,
+  onLogout,
+}: {
+  token: string | null;
+  onAuthenticate: (token: string) => void;
+  onLogout: () => void;
+}) {
+  if (!token) {
+    return <AuthScreen onAuthenticate={onAuthenticate} />;
+  }
+
   return (
     <NavigationContainer>
       <Tab.Navigator
@@ -152,7 +165,11 @@ export function RootNavigator() {
         <Tab.Screen name="Forecast" component={ForecastScreen} options={{ title: 'Forecast' }} />
         <Tab.Screen name="Safety" component={SafetyScreen} options={{ title: 'Safety' }} />
         <Tab.Screen name="TravelMap" component={TravelMapNavigator} options={{ title: 'Travel & Map' }} />
-        <Tab.Screen name="Profile" component={ProfileNavigator} options={{ title: 'Profile' }} />
+        <Tab.Screen
+          name="Profile"
+          children={(props: any) => <ProfileScreen {...(props as any)} onLogout={onLogout} />}
+          options={{ title: 'Profile' }}
+        />
       </Tab.Navigator>
     </NavigationContainer>
   );

@@ -12,9 +12,11 @@ import { ScreenContainer } from '../components/ScreenContainer';
 import { COLORS, SPACING, TYPOGRAPHY } from '../constants/theme';
 import type { ProfileStackParamList } from '../navigation/RootNavigator';
 
-type Props = NativeStackScreenProps<ProfileStackParamList, 'ProfileHome'>;
+type Props = NativeStackScreenProps<ProfileStackParamList, 'ProfileHome'> & {
+  onLogout?: () => void;
+};
 
-export function ProfileScreen({ navigation }: Props) {
+export function ProfileScreen({ navigation, onLogout }: Props) {
   return (
     <ScreenContainer>
       <View style={styles.center}>
@@ -31,6 +33,11 @@ export function ProfileScreen({ navigation }: Props) {
           <Pressable style={styles.secondaryButton} onPress={() => navigation.navigate('Assistant')}>
             <Text style={styles.secondaryButtonText}>Open AI Assistant</Text>
           </Pressable>
+          {onLogout && (
+            <Pressable style={styles.logoutButton} onPress={onLogout}>
+              <Text style={styles.logoutButtonText}>Logout</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </ScreenContainer>
@@ -47,4 +54,6 @@ const styles = StyleSheet.create({
   buttonText: { color: COLORS.background, fontSize: TYPOGRAPHY.fontSize.m, fontWeight: TYPOGRAPHY.fontWeight.semiBold },
   secondaryButton: { borderColor: COLORS.primary, borderRadius: 8, borderWidth: 1, paddingHorizontal: SPACING.l, paddingVertical: SPACING.m },
   secondaryButtonText: { color: COLORS.primary, fontSize: TYPOGRAPHY.fontSize.m, fontWeight: TYPOGRAPHY.fontWeight.semiBold },
+  logoutButton: { backgroundColor: COLORS.danger, borderRadius: 8, paddingHorizontal: SPACING.l, paddingVertical: SPACING.m },
+  logoutButtonText: { color: COLORS.white, fontSize: TYPOGRAPHY.fontSize.m, fontWeight: TYPOGRAPHY.fontWeight.semiBold },
 });

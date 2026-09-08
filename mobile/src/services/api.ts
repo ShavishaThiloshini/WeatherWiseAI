@@ -1,39 +1,46 @@
 /**
  * services/api.ts
  * Base API configuration for WeatherWise AI.
- *
- * TODO (Day 2+): Configure the base URL, authentication headers, and
- * request/response interceptors once the backend team provides the API spec.
  */
 
-// TODO: Move to environment variables or a secure config file (never commit API keys)
-const API_BASE_URL = 'https://api.weatherwiseai.example.com/v1'; // Placeholder
-
-/** Standard timeout for API requests in milliseconds */
+const API_BASE_URL = 'http://127.0.0.1:3000/api/v1';
 const REQUEST_TIMEOUT_MS = 10_000;
 
-/**
- * Generic fetch wrapper.
- * Extend this in Day 2+ to handle authentication, error normalisation, etc.
- */
-export async function apiFetch<T>(endpoint: string): Promise<T> {
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
+
+export function clearAuthToken() {
+  authToken = null;
+}
+
+export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO (Day 2+): Add Authorization header once auth is implemented
-      },
-    });
+    const headers = new Headers(init?.headers || {});
+    headers.set('Content-Type', 'application/json');
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    if (authToken) {
+      headers.set('Authorization', `Bearer ${authToken}`);
     }
 
-    return (await response.json()) as T;
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...init,
+      signal: controller.signal,
+      headers,
+    });
+
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(payload?.error?.message || `API error: ${response.status} ${response.statusText}`);
+    }
+
+    return payload as T;
   } finally {
     clearTimeout(timeoutId);
   }

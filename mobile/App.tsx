@@ -1,19 +1,29 @@
 /**
  * App.tsx
  * Entry point for WeatherWise AI.
- * Keeps this file minimal — all logic lives inside src/.
  */
 
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { clearAuthToken, setAuthToken } from './src/services/api';
 
 export default function App() {
+  const [token, setToken] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (token) {
+      setAuthToken(token);
+    } else {
+      clearAuthToken();
+    }
+  }, [token]);
+
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <RootNavigator />
+      <RootNavigator token={token} onAuthenticate={setToken} onLogout={() => setToken(null)} />
     </SafeAreaProvider>
   );
 }

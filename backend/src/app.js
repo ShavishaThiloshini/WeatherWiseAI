@@ -4,9 +4,15 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 
 const apiRouter = require('./routes');
+const authRouter = require('./routes/auth.routes');
+const { initializeDatabase } = require('./db');
 const { notFoundHandler, errorHandler } = require('./middleware/error-handler');
 
 const app = express();
+
+initializeDatabase().catch((error) => {
+  console.warn('Database initialization skipped or failed:', error.message);
+});
 
 app.disable('x-powered-by');
 app.use(helmet());
@@ -23,6 +29,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/v1', apiRouter);
+app.use('/api/v1/auth', authRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
