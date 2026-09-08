@@ -19,16 +19,20 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { SectionHeader } from '../components/SectionHeader';
-import { WeatherCard } from '../components/WeatherCard';
 import { InfoCard } from '../components/InfoCard';
+import { LoadingPlaceholder } from '../components/LoadingPlaceholder';
+import { AppHeader } from '../components/AppHeader';
+import { HeroWeather } from '../components/HeroWeather';
+import { MetricsGrid } from '../components/MetricsGrid';
+import { useWeather } from '../hooks/useWeather';
+import { useLocation } from '../hooks/useLocation';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { MOCK_WEATHER } from '../services/weatherService';
 import { MOCK_LOCATION } from '../services/locationService';
 
 export function HomeScreen() {
-  // [MOCK] Day 2+: Replace with real data from useWeather / useLocation hooks
-  const weather = MOCK_WEATHER;
-  const location = MOCK_LOCATION;
+  const { location, loading: locLoading } = useLocation();
+  const { data: weather, loading: weatherLoading } = useWeather(location?.latitude, location?.longitude);
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -36,66 +40,23 @@ export function HomeScreen() {
     month: 'long',
   });
 
+  const loc = location ?? MOCK_LOCATION;
+  const w = weather ?? MOCK_WEATHER;
+
   return (
     <ScreenContainer scrollable>
-      {/* ------------------------------------------------------------------ */}
-      {/* App header                                                           */}
-      {/* ------------------------------------------------------------------ */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.appName}>WeatherWise AI</Text>
-          <Text style={styles.dateText}>{today}</Text>
-        </View>
-        <View style={styles.locationBadge}>
-          <Text style={styles.locationIcon}>📍</Text>
-          <Text style={styles.locationText}>{location.city}</Text>
-        </View>
-      </View>
+      <AppHeader locationName={loc.city} dateLabel={today} />
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Hero weather card                                                    */}
-      {/* ------------------------------------------------------------------ */}
-      <View style={styles.heroCard}>
-        <Text style={styles.weatherEmoji}>⛅</Text>
-        <Text style={styles.temperature}>{weather.temperatureC}°C</Text>
-        <Text style={styles.conditionLabel}>{weather.conditionLabel}</Text>
-        <Text style={styles.feelsLike}>Feels like {weather.feelsLikeC}°C</Text>
-        <Text style={styles.locationFull}>{location.displayName}</Text>
-      </View>
+      {weatherLoading || locLoading ? (
+        <LoadingPlaceholder />
+      ) : (
+        <>
+          <HeroWeather weather={w} locationLabel={loc.displayName} />
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Weather metrics grid                                                 */}
-      {/* ------------------------------------------------------------------ */}
-      <SectionHeader title="Current Conditions" />
-      <View style={styles.metricsGrid}>
-        <WeatherCard
-          label="Humidity"
-          value={`${weather.humidity}%`}
-          icon="💧"
-          style={styles.gridItem}
-        />
-        <WeatherCard
-          label="Wind"
-          value={`${weather.windSpeedKmh} km/h`}
-          subLabel={weather.windDirection}
-          icon="🌬️"
-          style={styles.gridItem}
-        />
-        <WeatherCard
-          label="UV Index"
-          value={String(weather.uvIndex)}
-          subLabel={weather.uvIndex >= 8 ? 'Very High' : weather.uvIndex >= 6 ? 'High' : 'Moderate'}
-          icon="☀️"
-          style={styles.gridItem}
-        />
-        <WeatherCard
-          label="Rain"
-          value={`${weather.rainProbability}%`}
-          subLabel="Probability"
-          icon="🌧️"
-          style={styles.gridItem}
-        />
-      </View>
+          <SectionHeader title="Current Conditions" />
+          <MetricsGrid weather={w} />
+        </>
+      )}
 
       {/* ------------------------------------------------------------------ */}
       {/* Smart Advice                                                         */}

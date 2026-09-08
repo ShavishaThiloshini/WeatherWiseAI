@@ -8,26 +8,27 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../components/ScreenContainer';
+import { MapView } from '../components/MapView';
+import { useLocation } from '../hooks/useLocation';
 import { COLORS, SPACING, TYPOGRAPHY } from '../constants/theme';
+import { SectionHeader } from '../components/SectionHeader';
+import { InfoCard } from '../components/InfoCard';
 
 export function WeatherMapScreen() {
+  const { location } = useLocation();
+  const lat = location?.latitude ?? 0;
+  const lon = location?.longitude ?? 0;
+
+  // Show only the map on this screen — no header, no buttons, no cards
   return (
     <ScreenContainer>
-      <View style={styles.center}>
-        <Text style={styles.emoji}>🗺️</Text>
-        <Text style={styles.title}>Weather Map Screen</Text>
-        <Text style={styles.subtitle}>
-          Interactive weather map with rain radar, wind, and temperature overlays will be displayed here.{'\n'}
-          (Day 2+ feature)
-        </Text>
+      <View style={styles.mapContainer}>
+        <MapView latitude={lat} longitude={lon} height="100vh" />
       </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.xl },
-  emoji: { fontSize: 56, marginBottom: SPACING.m },
-  title: { fontSize: TYPOGRAPHY.fontSize.xl, fontWeight: TYPOGRAPHY.fontWeight.bold, color: COLORS.textPrimary, marginBottom: SPACING.s },
-  subtitle: { fontSize: TYPOGRAPHY.fontSize.m, color: COLORS.textSecondary, textAlign: 'center', lineHeight: TYPOGRAPHY.fontSize.m * 1.6 },
+  mapContainer: { flex: 1, width: '100%', height: '100%' },
 });
