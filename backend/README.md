@@ -1,6 +1,8 @@
 # WeatherWise AI Backend
 
-Day 1 backend foundation for the WeatherWise AI mobile application.
+Express backend for the WeatherWise AI mobile application. The Day 3 MySQL
+schema is maintained in `database/schema.sql` and is applied automatically at
+startup when `DATABASE_URL` is configured.
 
 ## Run locally
 
@@ -17,9 +19,22 @@ The API runs on `http://localhost:3000` by default.
 
 Create a MySQL database named `weatherwise`, create a database user, and set
 `DATABASE_URL` in `.env` using the connection string shown in `.env.example`.
+The database user needs permission to create and alter the tables in the
+`weatherwise` database. Start the API once to apply the schema.
 
-The MySQL connection pool is available through `src/db.js`. Database-backed
-features and schema migrations will be added in the next backend tasks.
+The MySQL connection pool and schema initialization are available through
+`src/db.js`. The schema includes users, preferences, locations, plants, weather
+snapshots, forecast cache, history, alerts, notifications, travel analyses,
+and AI conversations/messages.
+
+For a fresh database, the schema can also be applied manually:
+
+```powershell
+mysql -u weatherwise -p weatherwise < database/schema.sql
+```
+
+The schema uses UUID string keys, foreign-key ownership constraints, JSON risk
+factors, and indexes for user, location, cache, alert, and conversation reads.
 
 ## Endpoints
 

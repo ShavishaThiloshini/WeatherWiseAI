@@ -8,7 +8,7 @@
 | Document | 05 of 6 - Backend Schema Document |
 | Team | Shavi, Rahavi, Danu, Ruvethika |
 | Version | 1.0 |
-| Status | Draft for team review |
+| Status | Day 3 implementation baseline |
 
 ## 1. Purpose
 
@@ -221,3 +221,11 @@ AI Weather Assistant chat history, grouped into conversations.
 
 - WeatherSnapshot and ForecastCache rows are short-lived cache entries and can be pruned after a rolling window (e.g. 7 days) once superseded by WeatherHistory summaries.
 - WeatherHistory, Notification, and AIConversation/AIMessage are retained for the life of the user account to support the History feature (FR-19).
+
+## 7. Executable Schema
+
+The runnable MySQL DDL is maintained at `backend/database/schema.sql`. It
+implements the entities above with InnoDB foreign keys, ownership indexes,
+range checks for coordinates and percentages, and JSON storage for travel risk
+factors. The backend applies each statement during startup when
+`DATABASE_URL` is configured.

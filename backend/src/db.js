@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+const { randomUUID } = require('crypto');
 const mysql = require('mysql2/promise');
 
 const connectionString = process.env.DATABASE_URL;
@@ -8,18 +11,21 @@ const pool = connectionString
 
 const memoryUsers = global.__weatherwiseUsers || [];
 global.__weatherwiseUsers = memoryUsers;
+const schemaPath = path.join(__dirname, '..', 'database', 'schema.sql');
+
+function loadSchemaStatements() {
+  return fs
+    .readFileSync(schemaPath, 'utf8')
+    .split(/;\s*(?:\r?\n|$)/)
+    .map((statement) => statement.trim())
+    .filter(Boolean);
+}
 
 async function initializeDatabase() {
   if (pool) {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        email VARCHAR(255) NOT NULL UNIQUE,
-        password_hash VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    for (const statement of loadSchemaStatements()) {
+      await pool.query(statement);
+    }
     return true;
   }
 
@@ -75,14 +81,16 @@ async function createUser({ name, email, passwordHash }) {
     return user;
   }
 
-  const [result] = await query('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)', [
+  const id = randomUUID();
+  await query('INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)', [
+    id,
     String(name),
     normalizedEmail,
     passwordHash,
   ]);
 
   return {
-    id: result.insertId,
+    id,
     name: String(name),
     email: normalizedEmail,
     password_hash: passwordHash,
