@@ -6,9 +6,12 @@
 | Project | WeatherWise AI (Smart Weather Assistant) |
 | Document | Day 1 Testing Deliverable |
 | Owner | Testing rotation |
-| Version | 1.0 |
-| Status | Completed - Day 1 QA baseline |
+| Version | 1.1 |
+| Status | Completed - Day 1 QA baseline (kept as FR/TC catalogue) |
 | Related documents | PRD, TRD, AFD, UI/UX Design Brief, BSD, Implementation Plan |
+| Day 02 QA foundation | [`Docs/testing/`](testing/testing-strategy.md) — strategy, scenarios (TS-xxx), checklists, risk register, regression |
+
+Day 02 does not replace this catalogue. Use this file for FR-01–FR-20 traceability (TC-001–TC-036). Use `Docs/testing/` for the active process, layer-based tests, and safety checklists.
 
 ## 1. Purpose
 
