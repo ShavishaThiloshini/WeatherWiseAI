@@ -18,7 +18,11 @@ def test_heat_and_uv_recommendation() -> None:
         json={"temperature": 36, "uv_index": 9},
     )
     assert response.status_code == 200
-    assert response.json()["recommendations"][0]["category"] == "heat_and_uv"
+    payload = response.json()
+    categories = {item["category"] for item in payload["recommendations"]}
+    assert "hydration" in categories
+    assert payload["analysis"]["risks"]["heat"] in {"HIGH", "CRITICAL"}
+    assert payload["analysis"]["risks"]["uv"] in {"HIGH", "CRITICAL"}
 
 
 def test_storm_recommendation_is_severe() -> None:
@@ -28,8 +32,10 @@ def test_storm_recommendation_is_severe() -> None:
     )
     assert response.status_code == 200
     recommendation = response.json()["recommendations"][0]
-    assert recommendation["category"] == "thunderstorm"
-    assert recommendation["severity"] == "high"
+    assert recommendation["category"] == "outdoor"
+    assert recommendation["severity"] == "danger"
+    assert recommendation["priority"] == "CRITICAL"
+    assert response.json()["analysis"]["activity"] == "Avoid"
 
 
 def test_assistant_works_without_gemini_key() -> None:
@@ -42,3 +48,4 @@ def test_assistant_works_without_gemini_key() -> None:
     )
     assert response.status_code == 200
     assert response.json()["source"] == "deterministic_rules"
+    assert response.json()["answer"]

@@ -25,6 +25,10 @@ def test_recommend_contract_has_expected_fields() -> None:
     assert "category" in first
     assert "severity" in first
     assert "message" in first
+    assert "reason" in first
+    assert "priority" in first
+    assert "risk_level" in first
+    assert "factors" in first
 
 
 def test_assistant_contract_has_source_and_answer() -> None:

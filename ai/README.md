@@ -24,5 +24,14 @@ Gemini is optional. Add `GEMINI_API_KEY` to `.env` to enable `/assistant`. The k
 ## Endpoints
 
 - `GET /health`
-- `POST /recommend`
+- `POST /recommend` — compact weather or Day 02 envelope; rule engine in `engine/`
 - `POST /assistant`
+
+## Tests
+
+```powershell
+cd ai
+python -m pytest
+```
+
+Day 03 architecture notes: `Docs/ai/`.

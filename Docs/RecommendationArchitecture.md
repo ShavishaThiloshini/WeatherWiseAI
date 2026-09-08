@@ -214,21 +214,18 @@ sequenceDiagram
 | Optional LLM unavailable | Return deterministic recommendations or `deterministic_fallback`. | Show the answer without implying generative AI was used. |
 | Missing optional user preference | Apply neutral defaults. | No error; recommendation remains explainable. |
 
-## 6. Initial Implementation Mapping
+## 6. Implementation Mapping
 
-The current Day 1 FastAPI endpoint accepts a compact `WeatherInput` and
-returns deterministic rule items. Day 02 establishes the expanded contract;
-the implementation can grow in this order:
+Day 03 implements the deterministic rule engine (`ai/engine/`) with centralized
+thresholds, condition categories, explainable recommendations, priority sorting,
+and safety conflict resolution. `/recommend` still accepts the compact Day 1
+payload and also accepts the Day 02 envelope (`current` + optional `forecast`).
 
-1. Keep the existing threshold rules and map their fields into the canonical
-   `recommendations` response.
-2. Add request envelope validation and `request_id` propagation.
-3. Add forecast and preference-aware rules.
-4. Add travel, activity, plant-care, and alert intents.
-5. Add the Express proxy and mobile service integration.
+Remaining growth:
 
-This staged approach keeps the working deterministic fallback available while
-the complete context contract is implemented.
+1. Preference-aware threshold shifts (FR-20).
+2. Travel comparison and plant-care intents.
+3. Express proxy and mobile service integration.
 
 ## 7. Traceability and Acceptance Checks
 
