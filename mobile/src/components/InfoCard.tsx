@@ -11,12 +11,16 @@ import type { RecommendationSeverity } from '../types';
 
 interface InfoCardProps {
   title: string;
-  description: string;
+  /** Main message (accepts `description` or the AI engine's `message`) */
+  description?: string;
+  message?: string;
+  reason?: string;
+  action?: string | null;
   severity?: RecommendationSeverity;
   /** Emoji or short text icon */
   icon?: string;
   /** Optional numeric score 0-100 */
-  score?: number;
+  score?: number | null;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -30,12 +34,16 @@ const SEVERITY_COLORS: Record<RecommendationSeverity, { bg: string; accent: stri
 export function InfoCard({
   title,
   description,
+  message,
+  reason,
+  action,
   severity = 'info',
   icon,
   score,
   style,
 }: InfoCardProps) {
   const { bg, accent } = SEVERITY_COLORS[severity];
+  const body = description ?? message ?? '';
 
   return (
     <View style={[styles.card, { backgroundColor: COLORS.backgroundCard }, style]}>
@@ -52,7 +60,9 @@ export function InfoCard({
             </View>
           ) : null}
         </View>
-        <Text style={styles.description}>{description}</Text>
+        <Text style={styles.description}>{body}</Text>
+        {reason ? <Text style={styles.reason}>Why: {reason}</Text> : null}
+        {action ? <Text style={styles.action}>{action}</Text> : null}
       </View>
     </View>
   );
@@ -101,5 +111,18 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.fontSize.s,
     color: COLORS.textSecondary,
     lineHeight: TYPOGRAPHY.fontSize.s * 1.5,
+  },
+  reason: {
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+    fontStyle: 'italic',
+    opacity: 0.8,
+  },
+  action: {
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    color: accent,
+    marginTop: SPACING.xs,
+    fontWeight: TYPOGRAPHY.fontWeight.medium,
   },
 });

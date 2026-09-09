@@ -1,60 +1,50 @@
 /**
  * services/weatherService.ts
- * Placeholder service for weather data fetching.
- *
- * TODO (Day 2+): Replace mock data with real API calls using `apiFetch` once
- * the weather API integration is assigned.
+ * Weather data fetching from the WeatherWise backend API (real data).
  */
 
-import type { WeatherData, ForecastData } from '../types';
+import { apiFetch } from './api';
+import type { WeatherData, ForecastData, Recommendation } from '../types';
 
-// ---------------------------------------------------------------------------
-// Mock data (clearly marked - replace in Day 2+)
-// ---------------------------------------------------------------------------
-
-export const MOCK_WEATHER: WeatherData = {
-  temperatureC: 29,
-  feelsLikeC: 33,
-  condition: 'partly-cloudy',
-  conditionLabel: 'Partly Cloudy',
-  humidity: 72,
-  windSpeedKmh: 14,
-  windDirection: 'SW',
-  uvIndex: 7,
-  rainProbability: 40,
-  visibilityKm: 10,
-  timestamp: new Date().toISOString(),
-};
-
-export const MOCK_FORECAST: ForecastData = {
-  hourly: [],  // TODO: Populate with hourly mock data in Day 2+
-  daily: [],   // TODO: Populate with daily mock data in Day 2+
-};
-
-// ---------------------------------------------------------------------------
-// Service functions (placeholder implementations)
-// ---------------------------------------------------------------------------
-
-/**
- * Fetches current weather for the given coordinates.
- * @returns Mock data until the backend is connected (Day 2+)
- */
 export async function getCurrentWeather(
-  _latitude: number,
-  _longitude: number,
+  latitude: number,
+  longitude: number,
 ): Promise<WeatherData> {
-  // TODO (Day 2+): Replace with: return apiFetch<WeatherData>(`/weather/current?lat=${_latitude}&lon=${_longitude}`);
-  return Promise.resolve(MOCK_WEATHER);
+  const payload = await apiFetch<{ weather: WeatherData }>(
+    `/weather/current?lat=${latitude}&lon=${longitude}`,
+  );
+  return payload.weather;
+}
+
+export async function getForecast(
+  latitude: number,
+  longitude: number,
+): Promise<ForecastData> {
+  const payload = await apiFetch<{ forecast: ForecastData }>(
+    `/weather/forecast?lat=${latitude}&lon=${longitude}`,
+  );
+  return payload.forecast;
 }
 
 /**
- * Fetches a 7-day forecast for the given coordinates.
- * @returns Mock data until the backend is connected (Day 2+)
+ * Asks the backend for AI recommendations.
+ * Sends the compact payload understood by the Python recommendation engine.
  */
-export async function getForecast(
-  _latitude: number,
-  _longitude: number,
-): Promise<ForecastData> {
-  // TODO (Day 2+): Replace with: return apiFetch<ForecastData>(`/weather/forecast?lat=${_latitude}&lon=${_longitude}`);
-  return Promise.resolve(MOCK_FORECAST);
+export interface RecommendationResponse {
+  recommendations: Recommendation[];
+}
+
+export async function getRecommendations(params: {
+  temperature: number;
+  uv_index?: number;
+  rain_probability?: number;
+  wind_speed?: number;
+  condition?: string;
+  humidity?: number;
+  feels_like?: number;
+}): Promise<RecommendationResponse> {
+  return apiFetch<RecommendationResponse>('/recommendations', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
 }

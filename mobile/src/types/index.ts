@@ -97,20 +97,27 @@ export type RecommendationCategory =
   | 'travel'
   | 'outdoor'
   | 'plant-care'
-  | 'general';
+  | 'general'
+  | string; // AI engine may emit other categories
 
 export type RecommendationSeverity = 'info' | 'warning' | 'danger' | 'success';
 
 export interface Recommendation {
   id: string;
-  category: RecommendationCategory;
+  category: string;
   title: string;
-  description: string;
+  /** Main user-facing message from the AI engine */
+  message: string;
+  /** Why this recommendation was produced */
+  reason?: string;
+  /** Optional suggested action */
+  action?: string | null;
+  priority?: string;
+  risk_level?: string;
   severity: RecommendationSeverity;
   /** Optional numeric score 0-100, e.g. Travel Safety Score */
-  score?: number;
-  /** Optional icon name (to be used with an icon library in future days) */
-  icon?: string;
+  score?: number | null;
+  factors?: Array<{ label: string; value: string | number } | Record<string, unknown>>;
 }
 
 // ---------------------------------------------------------------------------

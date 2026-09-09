@@ -2,33 +2,42 @@
  * screens/HomeScreen.tsx
  * Main Home screen for WeatherWise AI.
  *
- * Day 01 state: Uses mock/placeholder data to demonstrate the UI structure.
- * All values marked [MOCK] should be replaced with live data in Day 2+.
- *
- * Layout sections:
- *  1. App header (location + date)
- *  2. Main weather hero card (temperature + condition)
- *  3. Weather metrics grid (humidity, wind, UV, rain)
- *  4. Smart Advice section (clothing, umbrella, hydration)
- *  5. Activity scores (Travel Safety, Outdoor Activity)
- *  6. Plant Care recommendation
- *  7. Severe Weather Alerts placeholder
+ * Fully wired: device location -> backend weather API -> AI recommendations.
  */
 
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, RefreshControl } from 'react-native';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { SectionHeader } from '../components/SectionHeader';
 import { WeatherCard } from '../components/WeatherCard';
 import { InfoCard } from '../components/InfoCard';
+import { EmptyView, ErrorView } from '../components/StateViews';
+import { LoadingPlaceholder } from '../components/LoadingPlaceholder';
+import { conditionIcon, uvLabel } from '../components/ui/IconMapper';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
-import { MOCK_WEATHER } from '../services/weatherService';
-import { MOCK_LOCATION } from '../services/locationService';
+import { useLocation, useWeather, useRecommendations } from '../hooks';
+import type { RecommendationSeverity } from '../types';
+
+const CATEGORY_ICONS: Record<string, string> = {
+  clothing: '👕',
+  umbrella: '☂️',
+  hydration: '🥤',
+  travel: '🚗',
+  outdoor: '🏃',
+  'plant-care': '🌿',
+  thunderstorm: '⛈️',
+  heat: '🥵',
+  cold: '🧣',
+  wind: '🌬️',
+  uv: '🧴',
+  rain: '🌧️',
+  general: '💡',
+};
 
 export function HomeScreen() {
-  // [MOCK] Day 2+: Replace with real data from useWeather / useLocation hooks
-  const weather = MOCK_WEATHER;
-  const location = MOCK_LOCATION;
+  const location = useLocation();
+  const weather = useWeather(location.data?.latitude ?? null, location.data?.longitude ?? null);
+  const recommendations = useRecommendations(weather.data);
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -36,11 +45,41 @@ export function HomeScreen() {
     month: 'long',
   });
 
+  const refreshing = location.isLoading || weather.isLoading;
+  const onRefresh = () => {
+    location.refresh();
+    if (location.data) weather.refresh();
+    recommendations.refresh();
+  };
+
+  if (location.isLoading && !location.data) {
+    return (
+      <ScreenContainer>
+        <LoadingPlaceholder message="Finding your location..." />
+      </ScreenContainer>
+    );
+  }
+
+  if (location.error) {
+    return (
+      <ScreenContainer>
+        <ErrorView message={location.error} onRetry={location.refresh} />
+      </ScreenContainer>
+    );
+  }
+
   return (
-    <ScreenContainer scrollable>
-      {/* ------------------------------------------------------------------ */}
-      {/* App header                                                           */}
-      {/* ------------------------------------------------------------------ */}
+    <ScreenContainer
+      scrollable
+      contentStyle={{ flexGrow: 1 }}
+    >
+      <RefreshControl
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={COLORS.primary}
+        contentOffset={{ x: 0, y: -100 } as never}
+      />
+      {/* App header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.appName}>WeatherWise AI</Text>
@@ -48,121 +87,82 @@ export function HomeScreen() {
         </View>
         <View style={styles.locationBadge}>
           <Text style={styles.locationIcon}>📍</Text>
-          <Text style={styles.locationText}>{location.city}</Text>
+          <Text style={styles.locationText}>{location.data?.city ?? 'Locating…'}</Text>
         </View>
       </View>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Hero weather card                                                    */}
-      {/* ------------------------------------------------------------------ */}
-      <View style={styles.heroCard}>
-        <Text style={styles.weatherEmoji}>⛅</Text>
-        <Text style={styles.temperature}>{weather.temperatureC}°C</Text>
-        <Text style={styles.conditionLabel}>{weather.conditionLabel}</Text>
-        <Text style={styles.feelsLike}>Feels like {weather.feelsLikeC}°C</Text>
-        <Text style={styles.locationFull}>{location.displayName}</Text>
-      </View>
+      {/* Hero weather card */}
+      {weather.isLoading && !weather.data ? (
+        <View style={[styles.heroCard, styles.heroLoading]}>
+          <Text style={styles.heroLoadingText}>Loading weather…</Text>
+        </View>
+      ) : weather.error ? (
+        <ErrorView message={weather.error} onRetry={weather.refresh} />
+      ) : weather.data ? (
+        <View style={styles.heroCard}>
+          <Text style={styles.weatherEmoji}>{conditionIcon(weather.data.condition)}</Text>
+          <Text style={styles.temperature}>{weather.data.temperatureC}°C</Text>
+          <Text style={styles.conditionLabel}>{weather.data.conditionLabel}</Text>
+          <Text style={styles.feelsLike}>Feels like {weather.data.feelsLikeC}°C</Text>
+          <Text style={styles.locationFull}>{location.data?.displayName}</Text>
+        </View>
+      ) : null}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Weather metrics grid                                                 */}
-      {/* ------------------------------------------------------------------ */}
-      <SectionHeader title="Current Conditions" />
-      <View style={styles.metricsGrid}>
-        <WeatherCard
-          label="Humidity"
-          value={`${weather.humidity}%`}
-          icon="💧"
-          style={styles.gridItem}
-        />
-        <WeatherCard
-          label="Wind"
-          value={`${weather.windSpeedKmh} km/h`}
-          subLabel={weather.windDirection}
-          icon="🌬️"
-          style={styles.gridItem}
-        />
-        <WeatherCard
-          label="UV Index"
-          value={String(weather.uvIndex)}
-          subLabel={weather.uvIndex >= 8 ? 'Very High' : weather.uvIndex >= 6 ? 'High' : 'Moderate'}
-          icon="☀️"
-          style={styles.gridItem}
-        />
-        <WeatherCard
-          label="Rain"
-          value={`${weather.rainProbability}%`}
-          subLabel="Probability"
-          icon="🌧️"
-          style={styles.gridItem}
-        />
-      </View>
+      {/* Weather metrics grid */}
+      {weather.data ? (
+        <>
+          <SectionHeader title="Current Conditions" />
+          <View style={styles.metricsGrid}>
+            <WeatherCard label="Humidity" value={`${weather.data.humidity}%`} icon="💧" style={styles.gridItem} />
+            <WeatherCard
+              label="Wind"
+              value={`${weather.data.windSpeedKmh} km/h`}
+              subLabel={weather.data.windDirection}
+              icon="🌬️"
+              style={styles.gridItem}
+            />
+            <WeatherCard
+              label="UV Index"
+              value={String(weather.data.uvIndex)}
+              subLabel={uvLabel(weather.data.uvIndex).label}
+              icon="☀️"
+              style={styles.gridItem}
+            />
+            <WeatherCard
+              label="Rain"
+              value={`${weather.data.rainProbability}%`}
+              subLabel="Probability"
+              icon="🌧️"
+              style={styles.gridItem}
+            />
+          </View>
+        </>
+      ) : null}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Smart Advice                                                         */}
-      {/* ------------------------------------------------------------------ */}
+      {/* Smart Advice — real AI engine output */}
       <SectionHeader title="Smart Advice" />
+      {recommendations.isLoading && !recommendations.data ? (
+        <LoadingPlaceholder message="Generating advice…" />
+      ) : recommendations.error ? (
+        <ErrorView message={`AI advice unavailable: ${recommendations.error}`} onRetry={recommendations.refresh} />
+      ) : recommendations.data && recommendations.data.length > 0 ? (
+        recommendations.data.map((rec) => (
+          <InfoCard
+            key={rec.id}
+            icon={CATEGORY_ICONS[rec.category] ?? '💡'}
+            title={rec.title}
+            message={rec.message}
+            reason={rec.reason}
+            action={rec.action}
+            severity={rec.severity as RecommendationSeverity}
+            score={rec.score ?? undefined}
+          />
+        ))
+      ) : (
+        <EmptyView message="No advice needed — conditions look fine." icon="👌" />
+      )}
 
-      {/* [MOCK] Clothing recommendation */}
-      <InfoCard
-        icon="👕"
-        title="Clothing"
-        description="Light, breathable clothing recommended. It will be warm and partly cloudy today."
-        severity="info"
-      />
-
-      {/* [MOCK] Umbrella recommendation */}
-      <InfoCard
-        icon="☂️"
-        title="Umbrella"
-        description="Consider carrying an umbrella — there's a 40% chance of rain this afternoon."
-        severity="warning"
-      />
-
-      {/* [MOCK] Hydration recommendation */}
-      <InfoCard
-        icon="🥤"
-        title="Hydration"
-        description="Stay well hydrated. High humidity and temperature may increase fluid loss."
-        severity="success"
-      />
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Activity scores                                                      */}
-      {/* ------------------------------------------------------------------ */}
-      <SectionHeader title="Activity Scores" />
-
-      {/* [MOCK] Travel safety score */}
-      <InfoCard
-        icon="🚗"
-        title="Travel Safety"
-        description="Moderate conditions. Exercise caution if travelling during afternoon showers."
-        severity="warning"
-        score={68}
-      />
-
-      {/* [MOCK] Outdoor activity score */}
-      <InfoCard
-        icon="🏃"
-        title="Outdoor Activity"
-        description="Generally good conditions for outdoor activity. Avoid peak UV hours (10am–2pm)."
-        severity="success"
-        score={75}
-      />
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Plant care                                                           */}
-      {/* ------------------------------------------------------------------ */}
-      <SectionHeader title="Plant Care" />
-      <InfoCard
-        icon="🌿"
-        title="Plant Care"
-        description="Natural rainfall expected. You may not need to water outdoor plants today."
-        severity="success"
-      />
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Severe weather alerts                                                */}
-      {/* ------------------------------------------------------------------ */}
+      {/* Severe weather alerts */}
       <SectionHeader title="Severe Weather Alerts" />
       <View style={styles.noAlertBanner}>
         <Text style={styles.noAlertIcon}>✅</Text>
@@ -198,16 +198,12 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
     gap: 4,
   },
-  locationIcon: {
-    fontSize: 14,
-  },
+  locationIcon: { fontSize: 14 },
   locationText: {
     fontSize: TYPOGRAPHY.fontSize.s,
     color: COLORS.textSecondary,
     fontWeight: TYPOGRAPHY.fontWeight.medium,
   },
-
-  // Hero card
   heroCard: {
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.xl,
@@ -216,10 +212,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.m,
     ...SHADOWS.card,
   },
-  weatherEmoji: {
-    fontSize: 64,
-    marginBottom: SPACING.s,
-  },
+  heroLoading: { paddingVertical: SPACING.xxl },
+  heroLoadingText: { color: COLORS.white, fontSize: TYPOGRAPHY.fontSize.m },
+  weatherEmoji: { fontSize: 64, marginBottom: SPACING.s },
   temperature: {
     fontSize: TYPOGRAPHY.fontSize.display,
     fontWeight: TYPOGRAPHY.fontWeight.extraBold,
@@ -243,20 +238,13 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
     opacity: 0.7,
   },
-
-  // Metrics grid
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: SPACING.s,
     marginBottom: SPACING.xs,
   },
-  gridItem: {
-    flex: 1,
-    minWidth: '45%',
-  },
-
-  // No-alert banner
+  gridItem: { flex: 1, minWidth: '45%' },
   noAlertBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -266,9 +254,7 @@ const styles = StyleSheet.create({
     gap: SPACING.s,
     marginBottom: SPACING.s,
   },
-  noAlertIcon: {
-    fontSize: 20,
-  },
+  noAlertIcon: { fontSize: 20 },
   noAlertText: {
     flex: 1,
     fontSize: TYPOGRAPHY.fontSize.s,

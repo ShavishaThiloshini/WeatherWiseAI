@@ -1,9 +1,10 @@
 /**
  * hooks/index.ts
  * Barrel export for custom hooks.
- *
- * TODO (Day 2+): Add custom hooks here as they are created, e.g.:
- *   export { useWeather } from './useWeather';
- *   export { useLocation } from './useLocation';
- *   export { useForecast } from './useForecast';
  */
+
+export { useAsyncData, type AsyncState } from './useAsyncData';
+export { useLocation } from './useLocation';
+export { useWeather } from './useWeather';
+export { useForecast } from './useForecast';
+export { useRecommendations } from './useRecommendations';

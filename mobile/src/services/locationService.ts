@@ -1,40 +1,35 @@
 /**
  * services/locationService.ts
- * Placeholder service for device location.
- *
- * TODO (Day 2+): Implement real GPS using expo-location once location
- * permissions and the backend integration are ready.
+ * Real device location via expo-location, with reverse geocoding.
  */
 
+import * as ExpoLocation from 'expo-location';
 import type { LocationData } from '../types';
 
-// ---------------------------------------------------------------------------
-// Mock data (clearly marked - replace in Day 2+)
-// ---------------------------------------------------------------------------
-
-export const MOCK_LOCATION: LocationData = {
-  latitude: 6.9271,
-  longitude: 79.8612,
-  city: 'Colombo',
-  region: 'Western Province',
-  country: 'Sri Lanka',
-  displayName: 'Colombo, Sri Lanka',
-};
-
-// ---------------------------------------------------------------------------
-// Service functions (placeholder implementations)
-// ---------------------------------------------------------------------------
-
-/**
- * Requests the user's current device location.
- * @returns Mock location data until expo-location is integrated (Day 2+)
- */
 export async function getCurrentLocation(): Promise<LocationData> {
-  // TODO (Day 2+): Replace with expo-location implementation:
-  // const { status } = await Location.requestForegroundPermissionsAsync();
-  // if (status !== 'granted') { throw new Error('Location permission denied'); }
-  // const coords = await Location.getCurrentPositionAsync({});
-  // const geocode = await Location.reverseGeocodeAsync(coords.coords);
-  // ... map to LocationData
-  return Promise.resolve(MOCK_LOCATION);
+  const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+  if (status !== 'granted') {
+    throw new Error('Location permission was denied. Enable it in Settings to see local weather.');
+  }
+
+  const position = await ExpoLocation.getCurrentPositionAsync({
+    accuracy: ExpoLocation.Accuracy.Balanced,
+  });
+  const { latitude, longitude } = position.coords;
+
+  const geocoded = await ExpoLocation.reverseGeocodeAsync({ latitude, longitude });
+  const place = geocoded[0];
+
+  const city = place?.city || place?.district || place?.region || 'Unknown';
+  const region = place?.region || '';
+  const country = place?.country || '';
+
+  return {
+    latitude,
+    longitude,
+    city,
+    region,
+    country,
+    displayName: [city, country].filter(Boolean).join(', '),
+  };
 }

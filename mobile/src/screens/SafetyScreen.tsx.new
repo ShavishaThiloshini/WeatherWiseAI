@@ -1,0 +1,108 @@
+/**
+ * screens/SafetyScreen.tsx
+ * Real safety view driven by the AI engine's recommendations & risks.
+ */
+
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { SectionHeader } from '../components/SectionHeader';
+import { InfoCard } from '../components/InfoCard';
+import { EmptyView, ErrorView } from '../components/StateViews';
+import { LoadingPlaceholder } from '../components/LoadingPlaceholder';
+import { Badge } from '../components/ui/Badge';
+import { Card } from '../components/ui/Card';
+import { COLORS, SPACING, TYPOGRAPHY } from '../constants/theme';
+import { useLocation, useWeather, useRecommendations } from '../hooks';
+import type { RecommendationSeverity } from '../types';
+
+const SAFETY_ICONS: Record<string, string> = {
+  thunderstorm: '⛈️',
+  heat: '🥵',
+  cold: '🧣',
+  rain: '🌧️',
+  wind: '🌬️',
+  uv: '🧴',
+  travel: '🚗',
+  general: '🛡️',
+};
+
+export function SafetyScreen() {
+  const location = useLocation();
+  const weather = useWeather(location.data?.latitude ?? null, location.data?.longitude ?? null);
+  const recommendations = useRecommendations(weather.data);
+
+  if (weather.isLoading && !weather.data) {
+    return (
+      <ScreenContainer>
+        <LoadingPlaceholder message="Assessing conditions..." />
+      </ScreenContainer>
+    );
+  }
+  if (weather.error) {
+    return (
+      <ScreenContainer>
+        <ErrorView message={weather.error} onRetry={weather.refresh} />
+      </ScreenContainer>
+    );
+  }
+
+  const safetyRecs = (recommendations.data ?? []).filter((r) =>
+    ['thunderstorm', 'heat', 'cold', 'rain', 'wind', 'uv', 'travel', 'general', 'danger'].includes(r.category) ||
+    ['warning', 'danger'].includes(r.severity),
+  );
+
+  return (
+    <ScreenContainer scrollable>
+      <SectionHeader title="Safety Assessment" />
+      {weather.data ? (
+        <Card style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>Current risk overview</Text>
+          <View style={styles.badgeRow}>
+            <Badge
+              label={`Rain ${weather.data.rainProbability}%`}
+              tone={weather.data.rainProbability >= 60 ? 'warning' : 'info'}
+            />
+            <Badge label={`Wind ${weather.data.windSpeedKmh} km/h`} tone={weather.data.windSpeedKmh >= 40 ? 'warning' : 'info'} />
+            <Badge
+              label={`UV ${weather.data.uvIndex}`}
+              tone={weather.data.uvIndex >= 8 ? 'danger' : weather.data.uvIndex >= 6 ? 'warning' : 'info'}
+            />
+          </View>
+        </Card>
+      ) : null}
+
+      <SectionHeader title="Safety Recommendations" />
+      {recommendations.isLoading && !recommendations.data ? (
+        <LoadingPlaceholder message="Checking safety rules..." />
+      ) : recommendations.error ? (
+        <ErrorView message={recommendations.error} onRetry={recommendations.refresh} />
+      ) : safetyRecs.length > 0 ? (
+        safetyRecs.map((rec) => (
+          <InfoCard
+            key={rec.id}
+            icon={SAFETY_ICONS[rec.category] ?? '🛡️'}
+            title={rec.title}
+            message={rec.message}
+            reason={rec.reason}
+            action={rec.action}
+            severity={rec.severity as RecommendationSeverity}
+          />
+        ))
+      ) : (
+        <EmptyView message="No safety concerns right now. Stay aware of changing conditions." icon="🛡️" />
+      )}
+    </ScreenContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  summaryCard: { marginBottom: SPACING.s },
+  summaryTitle: {
+    color: COLORS.textPrimary,
+    fontSize: TYPOGRAPHY.fontSize.m,
+    fontWeight: TYPOGRAPHY.fontWeight.semiBold,
+    marginBottom: SPACING.s,
+  },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
+});
