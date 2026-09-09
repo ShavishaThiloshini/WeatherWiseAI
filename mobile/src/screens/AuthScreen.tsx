@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Alert,
@@ -123,7 +124,11 @@ export function AuthScreen({ onAuthenticate }: { onAuthenticate: (token: string)
               accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               hitSlop={8}
             >
-              <Text style={styles.visibilityText}>{showPassword ? 'Hide' : 'Show'}</Text>
+              <MaterialCommunityIcons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={24}
+                color={COLORS.secondary}
+              />
             </Pressable>
           </View>
         </View>
@@ -239,11 +244,6 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: SPACING.m,
-  },
-  visibilityText: {
-    color: COLORS.secondary,
-    fontSize: TYPOGRAPHY.fontSize.s,
-    fontWeight: TYPOGRAPHY.fontWeight.semiBold,
   },
   button: {
     backgroundColor: COLORS.primary,
