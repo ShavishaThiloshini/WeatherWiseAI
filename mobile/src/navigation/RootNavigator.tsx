@@ -26,7 +26,6 @@ import { WeatherMapScreen } from '../screens/WeatherMapScreen';
 import { AIAssistantScreen } from '../screens/AIAssistantScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SafetyScreen } from '../screens/SafetyScreen';
-import { AuthScreen } from '../screens/AuthScreen';
 
 import { COLORS, TYPOGRAPHY } from '../constants/theme';
 
@@ -96,7 +95,7 @@ function TravelMapNavigator() {
 
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
-function ProfileNavigator() {
+function ProfileNavigator({ onLogout }: { onLogout: () => void }) {
   return (
     <ProfileStack.Navigator
       screenOptions={{
@@ -109,7 +108,9 @@ function ProfileNavigator() {
         contentStyle: { backgroundColor: COLORS.background },
       }}
     >
-      <ProfileStack.Screen name="ProfileHome" component={ProfileScreen} options={{ title: 'Profile & Settings' }} />
+      <ProfileStack.Screen name="ProfileHome" options={{ title: 'Profile & Settings' }}>
+        {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
+      </ProfileStack.Screen>
       <ProfileStack.Screen name="Plants" component={PlantsScreen} options={{ title: 'Plant Care' }} />
       <ProfileStack.Screen name="Assistant" component={AIAssistantScreen} options={{ title: 'AI Assistant' }} />
     </ProfileStack.Navigator>
@@ -123,12 +124,8 @@ function ProfileNavigator() {
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export function RootNavigator({
-  token,
-  onAuthenticate,
   onLogout,
 }: {
-  token: string | null;
-  onAuthenticate: (token: string) => void;
   onLogout: () => void;
 }) {
   return (
@@ -163,7 +160,7 @@ export function RootNavigator({
         <Tab.Screen name="TravelMap" component={TravelMapNavigator} options={{ title: 'Travel & Map' }} />
         <Tab.Screen
           name="Profile"
-          children={(props: any) => <ProfileScreen {...(props as any)} onLogout={onLogout} />}
+          children={() => <ProfileNavigator onLogout={onLogout} />}
           options={{ title: 'Profile' }}
         />
       </Tab.Navigator>

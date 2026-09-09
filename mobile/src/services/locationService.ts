@@ -5,6 +5,16 @@
 
 import * as ExpoLocation from 'expo-location';
 import type { LocationData } from '../types';
+import { apiFetch } from './api';
+
+export interface SavedLocation {
+  id: string | number;
+  label: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  is_default: boolean;
+}
 
 export async function getCurrentLocation(): Promise<LocationData> {
   const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
@@ -32,4 +42,19 @@ export async function getCurrentLocation(): Promise<LocationData> {
     country,
     displayName: [city, country].filter(Boolean).join(', '),
   };
+}
+
+export async function getSavedLocations(): Promise<SavedLocation[]> {
+  return (await apiFetch<{ locations: SavedLocation[] }>('/locations')).locations;
+}
+
+export async function saveLocation(location: Omit<SavedLocation, 'id'>): Promise<SavedLocation> {
+  return (await apiFetch<{ location: SavedLocation }>('/locations', {
+    method: 'POST',
+    body: JSON.stringify(location),
+  })).location;
+}
+
+export async function removeSavedLocation(id: string | number): Promise<void> {
+  await apiFetch<void>(`/locations/${id}`, { method: 'DELETE' });
 }

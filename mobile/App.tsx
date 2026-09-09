@@ -7,6 +7,7 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { AuthScreen } from './src/screens/AuthScreen';
 import { clearAuthToken, setAuthToken } from './src/services/api';
 
 export default function App() {
@@ -23,7 +24,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <RootNavigator token={token} onAuthenticate={setToken} onLogout={() => setToken(null)} />
+      {token ? (
+        <RootNavigator onLogout={() => setToken(null)} />
+      ) : (
+        <AuthScreen onAuthenticate={setToken} />
+      )}
     </SafeAreaProvider>
   );
 }

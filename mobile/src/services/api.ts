@@ -3,7 +3,10 @@
  * Base API configuration for WeatherWise AI.
  */
 
-const API_BASE_URL = 'http://10.0.2.2:3000/api/v1';
+import { Platform } from 'react-native';
+
+const DEFAULT_API_HOST = Platform.select({ android: '10.0.2.2', default: '127.0.0.1' });
+const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL || `http://${DEFAULT_API_HOST}:3001/api/v1`).replace(/\/$/, '');
 const REQUEST_TIMEOUT_MS = 10_000;
 
 let authToken: string | null = null;

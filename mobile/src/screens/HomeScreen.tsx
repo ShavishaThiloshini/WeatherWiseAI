@@ -72,13 +72,12 @@ export function HomeScreen() {
     <ScreenContainer
       scrollable
       contentStyle={{ flexGrow: 1 }}
-    >
-      <RefreshControl
+      refreshControl={<RefreshControl
         refreshing={refreshing}
         onRefresh={onRefresh}
         tintColor={COLORS.primary}
-        contentOffset={{ x: 0, y: -100 } as never}
-      />
+      />}
+    >
       {/* App header */}
       <View style={styles.header}>
         <View>

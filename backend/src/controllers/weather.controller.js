@@ -212,6 +212,28 @@ async function forecast(req, res, next) {
  */
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://127.0.0.1:8000";
 
+function fallbackRecommendations(input) {
+  const temperature = Number(input.temperature) || 0;
+  const rain = Number(input.rain_probability) || 0;
+  const uv = Number(input.uv_index) || 0;
+  const wind = Number(input.wind_speed) || 0;
+  const recommendations = [];
+  if (rain >= 60) recommendations.push({ id: 'rain', category: 'rain', title: 'Plan for rain', message: 'Carry rain protection and allow extra travel time.', severity: rain >= 85 ? 'danger' : 'warning' });
+  if (uv >= 6) recommendations.push({ id: 'uv', category: 'uv', title: 'Limit sun exposure', message: 'Use sunscreen, seek shade, and bring water.', severity: uv >= 8 ? 'danger' : 'warning' });
+  if (temperature >= 32) recommendations.push({ id: 'heat', category: 'heat', title: 'Stay hydrated', message: 'Drink water regularly and avoid strenuous activity during peak heat.', severity: 'warning' });
+  if (wind >= 40) recommendations.push({ id: 'wind', category: 'wind', title: 'Take care in strong wind', message: 'Use caution around trees, high vehicles, and exposed routes.', severity: 'warning' });
+  if (!recommendations.length) recommendations.push({ id: 'general', category: 'general', title: 'Conditions look manageable', message: 'Keep checking the forecast before extended outdoor plans.', severity: 'success' });
+  return { source: 'deterministic_fallback', recommendations };
+}
+
+function fallbackAssistant(question, weather) {
+  const temperature = Number(weather.temperature) || 0;
+  const rain = Number(weather.rain_probability) || 0;
+  const uv = Number(weather.uv_index) || 0;
+  const warning = rain >= 60 ? 'Rain is likely, so take rain protection and leave extra time.' : uv >= 6 ? 'Sun exposure is elevated, so use sunscreen and water.' : 'Conditions are currently manageable.';
+  return { source: 'deterministic_fallback', answer: `${warning} Based on your question: ${question}` };
+}
+
 async function recommendations(req, res, next) {
   try {
     const controller = new AbortController();
@@ -225,12 +247,7 @@ async function recommendations(req, res, next) {
       });
       const payload = await response.json();
       if (!response.ok) {
-        return res.status(response.status).json({
-          error: {
-            code: "AI_SERVICE_ERROR",
-            message: payload?.detail || "AI service request failed",
-          },
-        });
+        return res.json(fallbackRecommendations(req.body || {}));
       }
       return res.json(payload);
     } finally {
@@ -238,15 +255,44 @@ async function recommendations(req, res, next) {
     }
   } catch (error) {
     if (error.name === "AbortError" || error.cause?.code === "ECONNREFUSED") {
-      return res.status(503).json({
-        error: {
-          code: "AI_SERVICE_UNAVAILABLE",
-          message: "AI recommendation service is not reachable",
-        },
-      });
+      return res.json(fallbackRecommendations(req.body || {}));
     }
     return next(error);
   }
 }
 
-module.exports = { current, forecast, recommendations };
+async function assistant(req, res, next) {
+  try {
+    const question = String(req.body?.question || '').trim();
+    if (!question || question.length > 500 || !req.body?.weather) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: 'A question and current weather are required' },
+      });
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15_000);
+    try {
+      const response = await fetch(`${AI_SERVICE_URL}/assistant`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, weather: req.body.weather }),
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.answer) {
+        return res.json(fallbackAssistant(question, req.body.weather));
+      }
+      return res.json(payload);
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch (error) {
+    if (error.name === 'AbortError' || error.cause?.code === 'ECONNREFUSED') {
+      return res.json(fallbackAssistant(question, req.body.weather));
+    }
+    return next(error);
+  }
+}
+
+module.exports = { current, forecast, recommendations, assistant };

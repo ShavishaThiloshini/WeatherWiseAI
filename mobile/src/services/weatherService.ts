@@ -48,3 +48,21 @@ export async function getRecommendations(params: {
     body: JSON.stringify(params),
   });
 }
+
+export async function askAssistant(question: string, weather: WeatherData): Promise<{ answer: string; source: string }> {
+  return apiFetch<{ answer: string; source: string }>('/assistant', {
+    method: 'POST',
+    body: JSON.stringify({
+      question,
+      weather: {
+        temperature: weather.temperatureC,
+        feels_like: weather.feelsLikeC,
+        humidity: weather.humidity,
+        uv_index: weather.uvIndex,
+        rain_probability: weather.rainProbability,
+        wind_speed: weather.windSpeedKmh,
+        condition: weather.condition,
+      },
+    }),
+  });
+}

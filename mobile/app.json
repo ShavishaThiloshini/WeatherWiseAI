@@ -1,11 +1,19 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "WeatherWise AI",
+    "slug": "weatherwise-ai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "WeatherWise AI uses your location to provide local weather and safety advice."
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true
     },

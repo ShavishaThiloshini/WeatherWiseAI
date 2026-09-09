@@ -1,11 +1,6 @@
 /**
  * utils/index.ts
  * Barrel export for utility functions.
- *
- * TODO (Day 2+): Add utility functions here as they are created, e.g.:
- *   export { formatTemperature } from './formatTemperature';
- *   export { getUVLabel } from './getUVLabel';
- *   export { formatWindDirection } from './formatWindDirection';
  */
 
 /**

@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   },
   action: {
     fontSize: TYPOGRAPHY.fontSize.xs,
-    color: accent,
+    color: COLORS.primary,
     marginTop: SPACING.xs,
     fontWeight: TYPOGRAPHY.fontWeight.medium,
   },
