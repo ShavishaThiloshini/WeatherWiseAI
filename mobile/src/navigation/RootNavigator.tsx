@@ -131,10 +131,6 @@ export function RootNavigator({
   onAuthenticate: (token: string) => void;
   onLogout: () => void;
 }) {
-  if (!token) {
-    return <AuthScreen onAuthenticate={onAuthenticate} />;
-  }
-
   return (
     <NavigationContainer>
       <Tab.Navigator

@@ -1,33 +1,57 @@
 /**
  * screens/WeatherMapScreen.tsx
- * Placeholder screen for interactive weather map.
- * TODO (Day 2+): Integrate a map component (e.g. react-native-maps) with
- *               weather overlays (rain radar, wind, temperature).
+ * Interactive weather map with a live-style regional view.
  */
 
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { ScreenContainer } from '../components/ScreenContainer';
-import { COLORS, SPACING, TYPOGRAPHY } from '../constants/theme';
+import { COLORS, SPACING } from '../constants/theme';
+
+const defaultRegion = {
+  latitude: 37.78825,
+  longitude: -122.4324,
+  latitudeDelta: 0.08,
+  longitudeDelta: 0.08,
+};
+
+const weatherMarker = {
+  latitude: 37.78825,
+  longitude: -122.4324,
+};
 
 export function WeatherMapScreen() {
   return (
     <ScreenContainer>
-      <View style={styles.center}>
-        <Text style={styles.emoji}>🗺️</Text>
-        <Text style={styles.title}>Weather Map Screen</Text>
-        <Text style={styles.subtitle}>
-          Interactive weather map with rain radar, wind, and temperature overlays will be displayed here.{'\n'}
-          (Day 2+ feature)
-        </Text>
+      <View style={styles.container}>
+        <MapView
+          style={styles.map}
+          initialRegion={defaultRegion}
+          showsCompass
+          showsScale
+          showsMyLocationButton
+        >
+          <Marker
+            coordinate={weatherMarker}
+            title="WeatherWise AI"
+            description="Current weather area"
+          />
+        </MapView>
       </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.xl },
-  emoji: { fontSize: 56, marginBottom: SPACING.m },
-  title: { fontSize: TYPOGRAPHY.fontSize.xl, fontWeight: TYPOGRAPHY.fontWeight.bold, color: COLORS.textPrimary, marginBottom: SPACING.s },
-  subtitle: { fontSize: TYPOGRAPHY.fontSize.m, color: COLORS.textSecondary, textAlign: 'center', lineHeight: TYPOGRAPHY.fontSize.m * 1.6 },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  map: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    marginTop: SPACING.s,
+  },
 });
