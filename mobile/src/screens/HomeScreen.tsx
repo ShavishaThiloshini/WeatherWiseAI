@@ -16,19 +16,34 @@
  */
 
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { SectionHeader } from '../components/SectionHeader';
 import { WeatherCard } from '../components/WeatherCard';
 import { InfoCard } from '../components/InfoCard';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { MOCK_WEATHER } from '../services/weatherService';
-import { MOCK_LOCATION } from '../services/locationService';
+import { getCurrentLocation } from '../services/locationService';
+import type { LocationData } from '../types';
 
 export function HomeScreen() {
   // [MOCK] Day 2+: Replace with real data from useWeather / useLocation hooks
   const weather = MOCK_WEATHER;
-  const location = MOCK_LOCATION;
+  const [location, setLocation] = React.useState<LocationData | null>(null);
+  const [locationError, setLocationError] = React.useState<string | null>(null);
+
+  const loadLocation = React.useCallback(async () => {
+    setLocationError(null);
+    try {
+      setLocation(await getCurrentLocation());
+    } catch (error) {
+      setLocationError(error instanceof Error ? error.message : 'Unable to determine your location.');
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadLocation();
+  }, [loadLocation]);
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -48,7 +63,7 @@ export function HomeScreen() {
         </View>
         <View style={styles.locationBadge}>
           <Text style={styles.locationIcon}>📍</Text>
-          <Text style={styles.locationText}>{location.city}</Text>
+          <Text style={styles.locationText}>{location?.city || 'Locating...'}</Text>
         </View>
       </View>
 
@@ -60,8 +75,17 @@ export function HomeScreen() {
         <Text style={styles.temperature}>{weather.temperatureC}°C</Text>
         <Text style={styles.conditionLabel}>{weather.conditionLabel}</Text>
         <Text style={styles.feelsLike}>Feels like {weather.feelsLikeC}°C</Text>
-        <Text style={styles.locationFull}>{location.displayName}</Text>
+        <Text style={styles.locationFull}>{location?.displayName || 'Finding your current location'}</Text>
       </View>
+
+      {locationError && (
+        <View style={styles.locationError}>
+          <Text style={styles.locationErrorText}>{locationError}</Text>
+          <Pressable onPress={() => void loadLocation()} style={styles.retryButton}>
+            <Text style={styles.retryText}>Try again</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* ------------------------------------------------------------------ */}
       {/* Weather metrics grid                                                 */}
@@ -205,6 +229,27 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.fontSize.s,
     color: COLORS.textSecondary,
     fontWeight: TYPOGRAPHY.fontWeight.medium,
+  },
+  locationError: {
+    backgroundColor: COLORS.dangerLight,
+    borderRadius: BORDER_RADIUS.m,
+    marginBottom: SPACING.m,
+    padding: SPACING.m,
+  },
+  locationErrorText: {
+    color: COLORS.danger,
+    fontSize: TYPOGRAPHY.fontSize.s,
+    lineHeight: 20,
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+    marginTop: SPACING.s,
+    paddingVertical: SPACING.xs,
+  },
+  retryText: {
+    color: COLORS.primary,
+    fontSize: TYPOGRAPHY.fontSize.s,
+    fontWeight: TYPOGRAPHY.fontWeight.semiBold,
   },
 
   // Hero card

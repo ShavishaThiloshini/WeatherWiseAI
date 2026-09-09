@@ -1,16 +1,11 @@
 /**
  * services/locationService.ts
- * Placeholder service for device location.
- *
- * TODO (Day 2+): Implement real GPS using expo-location once location
- * permissions and the backend integration are ready.
+ * Device location and saved-location service.
  */
 
+import * as Location from 'expo-location';
 import type { LocationData } from '../types';
-
-// ---------------------------------------------------------------------------
-// Mock data (clearly marked - replace in Day 2+)
-// ---------------------------------------------------------------------------
+import { apiFetch } from './api';
 
 export const MOCK_LOCATION: LocationData = {
   latitude: 6.9271,
@@ -21,20 +16,48 @@ export const MOCK_LOCATION: LocationData = {
   displayName: 'Colombo, Sri Lanka',
 };
 
-// ---------------------------------------------------------------------------
-// Service functions (placeholder implementations)
-// ---------------------------------------------------------------------------
-
-/**
- * Requests the user's current device location.
- * @returns Mock location data until expo-location is integrated (Day 2+)
- */
 export async function getCurrentLocation(): Promise<LocationData> {
-  // TODO (Day 2+): Replace with expo-location implementation:
-  // const { status } = await Location.requestForegroundPermissionsAsync();
-  // if (status !== 'granted') { throw new Error('Location permission denied'); }
-  // const coords = await Location.getCurrentPositionAsync({});
-  // const geocode = await Location.reverseGeocodeAsync(coords.coords);
-  // ... map to LocationData
-  return Promise.resolve(MOCK_LOCATION);
+  const permission = await Location.requestForegroundPermissionsAsync();
+  if (permission.status !== Location.PermissionStatus.GRANTED) {
+    throw new Error('Location permission was denied. Enable it in your device settings to use local weather.');
+  }
+
+  const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+  const { latitude, longitude } = position.coords;
+  const [address] = await Location.reverseGeocodeAsync({ latitude, longitude });
+
+  const city = address?.city || address?.district || address?.subregion || 'Current location';
+  const region = address?.region || '';
+  const country = address?.country || '';
+
+  return {
+    latitude,
+    longitude,
+    city,
+    region,
+    country,
+    displayName: [city, country].filter(Boolean).join(', '),
+  };
+}
+
+export interface SavedLocation {
+  id: number;
+  label: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  is_default: boolean;
+}
+
+export async function listSavedLocations(): Promise<SavedLocation[]> {
+  const response = await apiFetch<{ locations: SavedLocation[] }>('/locations');
+  return response.locations;
+}
+
+export async function saveLocation(location: Omit<SavedLocation, 'id'>): Promise<SavedLocation> {
+  const response = await apiFetch<{ location: SavedLocation }>('/locations', {
+    method: 'POST',
+    body: JSON.stringify({ ...location, is_default: location.is_default }),
+  });
+  return response.location;
 }
