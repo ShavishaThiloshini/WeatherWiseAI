@@ -10,9 +10,9 @@ import { COLORS, SPACING, TYPOGRAPHY } from '../constants/theme';
 import type { ProfileStackParamList } from '../navigation/RootNavigator';
 import { getSavedLocations, removeSavedLocation, saveLocation, type SavedLocation } from '../services/locationService';
 
-type Props = NativeStackScreenProps<ProfileStackParamList, 'ProfileHome'> & { onLogout: () => void };
+type Props = NativeStackScreenProps<ProfileStackParamList, 'ProfileHome'>;
 
-export function ProfileScreen({ navigation, onLogout }: Props) {
+export function ProfileScreen({ navigation }: Props) {
   const [locations, setLocations] = useState<SavedLocation[]>([]);
   const [label, setLabel] = useState('');
   const [latitude, setLatitude] = useState('');
@@ -37,7 +37,7 @@ export function ProfileScreen({ navigation, onLogout }: Props) {
       {!loading && locations.length === 0 ? <Text style={styles.empty}>No saved locations yet.</Text> : null}
       {locations.map((location) => <Card key={location.id} style={styles.location}><View style={styles.locationText}><Text style={styles.locationName}>{location.label}</Text><Text style={styles.coords}>{Number(location.latitude).toFixed(3)}, {Number(location.longitude).toFixed(3)}</Text></View><Button label="Remove" variant="ghost" onPress={() => void remove(location.id)} style={styles.remove} /></Card>)}
       <Card style={styles.form}><Text style={styles.formTitle}>Add a location</Text><TextField label="Location name" value={label} onChangeText={setLabel} placeholder="Home or University" /><TextField label="Latitude" value={latitude} onChangeText={setLatitude} keyboardType="decimal-pad" placeholder="6.9271" /><TextField label="Longitude" value={longitude} onChangeText={setLongitude} keyboardType="decimal-pad" placeholder="79.8612" /><Button label="Save location" onPress={() => void addLocation()} /></Card>
-      <View style={styles.actions}><Button label="Plant care" onPress={() => navigation.navigate('Plants')} /><Button label="Ask WeatherWise" variant="secondary" onPress={() => navigation.navigate('Assistant')} /><Button label="Log out" variant="danger" onPress={onLogout} /></View>
+      <View style={styles.actions}><Button label="Plant care" onPress={() => navigation.navigate('Plants')} /><Button label="Ask WeatherWise" variant="secondary" onPress={() => navigation.navigate('Assistant')} /></View>
     </ScreenContainer>
   );
 }

@@ -95,7 +95,7 @@ function TravelMapNavigator() {
 
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
-function ProfileNavigator({ onLogout }: { onLogout: () => void }) {
+function ProfileNavigator() {
   return (
     <ProfileStack.Navigator
       screenOptions={{
@@ -108,9 +108,7 @@ function ProfileNavigator({ onLogout }: { onLogout: () => void }) {
         contentStyle: { backgroundColor: COLORS.background },
       }}
     >
-      <ProfileStack.Screen name="ProfileHome" options={{ title: 'Profile & Settings' }}>
-        {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
-      </ProfileStack.Screen>
+      <ProfileStack.Screen name="ProfileHome" component={ProfileScreen} options={{ title: 'Profile & Settings' }} />
       <ProfileStack.Screen name="Plants" component={PlantsScreen} options={{ title: 'Plant Care' }} />
       <ProfileStack.Screen name="Assistant" component={AIAssistantScreen} options={{ title: 'AI Assistant' }} />
     </ProfileStack.Navigator>
@@ -123,11 +121,7 @@ function ProfileNavigator({ onLogout }: { onLogout: () => void }) {
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
-export function RootNavigator({
-  onLogout,
-}: {
-  onLogout: () => void;
-}) {
+export function RootNavigator() {
   return (
     <NavigationContainer>
       <Tab.Navigator
@@ -160,7 +154,7 @@ export function RootNavigator({
         <Tab.Screen name="TravelMap" component={TravelMapNavigator} options={{ title: 'Travel & Map' }} />
         <Tab.Screen
           name="Profile"
-          children={() => <ProfileNavigator onLogout={onLogout} />}
+          component={ProfileNavigator}
           options={{ title: 'Profile' }}
         />
       </Tab.Navigator>
