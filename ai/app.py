@@ -64,6 +64,8 @@ def recommend(payload: dict[str, Any]) -> dict[str, Any]:
             status_code=422,
             detail="Provide compact fields (temperature) or a current-weather envelope.",
         )
+    if has_envelope and not isinstance(payload.get("location"), dict):
+        raise HTTPException(status_code=422, detail="Envelope requests require a location object.")
     return recommend_from_payload(payload)
 
 

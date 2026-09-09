@@ -38,7 +38,8 @@ def test_storm_recommendation_is_severe() -> None:
     assert response.json()["analysis"]["activity"] == "Avoid"
 
 
-def test_assistant_works_without_gemini_key() -> None:
+def test_assistant_works_without_gemini_key(monkeypatch) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     response = client.post(
         "/assistant",
         json={

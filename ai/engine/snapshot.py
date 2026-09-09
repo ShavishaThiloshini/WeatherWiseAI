@@ -27,6 +27,13 @@ def _percent(value: object) -> float | None:
     return number
 
 
+def _coordinate(value: object, minimum: float, maximum: float) -> float | None:
+    number = _finite_number(value)
+    if number is None or number < minimum or number > maximum:
+        return None
+    return number
+
+
 def _text(value: object) -> str | None:
     if value is None:
         return None
@@ -96,6 +103,13 @@ def from_compact(
     extra_limitations: list[str] | None = None,
 ) -> WeatherSnapshot:
     limitations = list(extra_limitations or [])
+    location = payload.get("location") if isinstance(payload.get("location"), dict) else payload
+    latitude = _coordinate(location.get("latitude"), -90, 90)
+    longitude = _coordinate(location.get("longitude"), -180, 180)
+    if location.get("latitude") is not None and latitude is None:
+        limitations.append("latitude_invalid")
+    if location.get("longitude") is not None and longitude is None:
+        limitations.append("longitude_invalid")
     temperature = _finite_number(payload.get("temperature"))
     if temperature is None and payload.get("temperature") is not None:
         limitations.append("temperature_invalid")
@@ -133,7 +147,11 @@ def from_compact(
         sunrise=_text(payload.get("sunrise")),
         sunset=_text(payload.get("sunset")),
         observed_at=_text(payload.get("observed_at") or payload.get("timestamp")),
-        location_label=_text(payload.get("location")),
+        location_label=_text(location.get("label") or location.get("name") or payload.get("location")),
+        location_id=_text(location.get("id")),
+        latitude=latitude,
+        longitude=longitude,
+        timezone=_text(location.get("timezone")),
         request_id=request_id,
         rain_timing=_text(payload.get("rain_timing")),
         limitations=limitations,
@@ -146,6 +164,12 @@ def from_envelope(payload: dict) -> WeatherSnapshot:
     forecast = payload.get("forecast")
     timing, forecast_rain, forecast_intensity, forecast_limits = _forecast_rain(forecast)
     limitations = list(forecast_limits)
+    latitude = _coordinate(location.get("latitude"), -90, 90)
+    longitude = _coordinate(location.get("longitude"), -180, 180)
+    if location.get("latitude") is not None and latitude is None:
+        limitations.append("latitude_invalid")
+    if location.get("longitude") is not None and longitude is None:
+        limitations.append("longitude_invalid")
 
     temperature = _finite_number(current.get("temperature_c"))
     if temperature is None:
@@ -197,6 +221,9 @@ def from_envelope(payload: dict) -> WeatherSnapshot:
         sunset=_text(current.get("sunset")),
         observed_at=_text(current.get("observed_at")),
         location_label=_text(location.get("label")),
+        location_id=_text(location.get("id")),
+        latitude=latitude,
+        longitude=longitude,
         timezone=_text(location.get("timezone")),
         request_id=_text(payload.get("request_id")),
         rain_timing=timing,

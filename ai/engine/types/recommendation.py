@@ -27,6 +27,9 @@ class WeatherSnapshot:
     sunset: str | None = None
     observed_at: str | None = None
     location_label: str | None = None
+    location_id: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     timezone: str | None = None
     request_id: str | None = None
     rain_timing: str | None = None  # now | soon | later | unknown

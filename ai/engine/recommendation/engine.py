@@ -125,6 +125,13 @@ def recommend_from_payload(payload: dict) -> dict:
         "generated_at": generated_at,
         "source": "deterministic_rules",
         "data_freshness": result.data_freshness,
+        "location": {
+            "id": weather.location_id,
+            "label": weather.location_label,
+            "latitude": weather.latitude,
+            "longitude": weather.longitude,
+            "timezone": weather.timezone,
+        },
         "recommendations": [item.to_api() for item in result.recommendations],
         "alerts": result.alerts,
         "analysis": {
@@ -149,5 +156,7 @@ def recommend_from_payload(payload: dict) -> dict:
         "assistant_context": {
             "summary": result.summary,
             "limitations": result.limitations,
+            "location_label": weather.location_label,
+            "timezone": weather.timezone,
         },
     }
