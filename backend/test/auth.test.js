@@ -39,7 +39,7 @@ test('POST /api/v1/auth/register creates a user and returns a token', async () =
     const result = await request('POST', '/api/v1/auth/register', {
       name: 'Test User',
       email: 'day2@test.com',
-      password: 'secret123',
+      password: 'Secret123',
     });
 
     assert.equal(result.status, 201);
@@ -56,16 +56,121 @@ test('POST /api/v1/auth/login returns token for valid credentials', async () => 
     await request('POST', '/api/v1/auth/register', {
       name: 'Login User',
       email: 'login@test.com',
-      password: 'secret123',
+      password: 'Secret123',
     });
 
     const result = await request('POST', '/api/v1/auth/login', {
       email: 'login@test.com',
-      password: 'secret123',
+      password: 'Secret123',
     });
 
     assert.equal(result.status, 200);
     assert.ok(result.payload.token);
+  } finally {
+    await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+  }
+});
+
+test('POST /api/v1/auth/register rejects missing fields', async () => {
+  const server = await startServer();
+  try {
+    const result = await request('POST', '/api/v1/auth/register', {
+      name: 'Test User',
+      email: 'test@test.com',
+    });
+
+    assert.equal(result.status, 400);
+    assert.equal(result.payload.error.code, 'VALIDATION_ERROR');
+  } finally {
+    await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+  }
+});
+
+test('POST /api/v1/auth/register rejects invalid email', async () => {
+  const server = await startServer();
+  try {
+    const result = await request('POST', '/api/v1/auth/register', {
+      name: 'Test User',
+      email: 'invalid-email',
+      password: 'Secret123',
+    });
+
+    assert.equal(result.status, 400);
+    assert.equal(result.payload.error.code, 'VALIDATION_ERROR');
+  } finally {
+    await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+  }
+});
+
+test('POST /api/v1/auth/register rejects weak password', async () => {
+  const server = await startServer();
+  try {
+    const result = await request('POST', '/api/v1/auth/register', {
+      name: 'Test User',
+      email: 'weak@test.com',
+      password: 'weak',
+    });
+
+    assert.equal(result.status, 400);
+    assert.equal(result.payload.error.code, 'VALIDATION_ERROR');
+  } finally {
+    await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+  }
+});
+
+test('POST /api/v1/auth/register rejects duplicate email', async () => {
+  const server = await startServer();
+  try {
+    await request('POST', '/api/v1/auth/register', {
+      name: 'Test User',
+      email: 'duplicate@test.com',
+      password: 'Secret123',
+    });
+
+    const result = await request('POST', '/api/v1/auth/register', {
+      name: 'Another User',
+      email: 'duplicate@test.com',
+      password: 'Secret123',
+    });
+
+    assert.equal(result.status, 409);
+    assert.equal(result.payload.error.code, 'EMAIL_ALREADY_EXISTS');
+  } finally {
+    await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+  }
+});
+
+test('POST /api/v1/auth/login rejects invalid credentials', async () => {
+  const server = await startServer();
+  try {
+    const result = await request('POST', '/api/v1/auth/login', {
+      email: 'nonexistent@test.com',
+      password: 'Secret123',
+    });
+
+    assert.equal(result.status, 401);
+    assert.equal(result.payload.error.code, 'INVALID_CREDENTIALS');
+  } finally {
+    await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+  }
+});
+
+test('POST /api/v1/auth/login rejects wrong password', async () => {
+  const server = await startServer();
+  try {
+    await request('POST', '/api/v1/auth/register', {
+      name: 'Test User',
+      email: 'wrongpass@test.com',
+      password: 'Secret123',
+    });
+
+    const result = await request('POST', '/api/v1/auth/login', {
+      email: 'wrongpass@test.com',
+      password: 'WrongPassword',
+    });
+
+    assert.equal(result.status, 401);
+    assert.equal(result.payload.error.code, 'INVALID_CREDENTIALS');
   } finally {
     await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
   }
