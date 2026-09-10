@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const { findUserByEmail, createUser } = require('../db');
+const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ router.post('/register', async (req, res, next) => {
   try {
     const { name, email, password } = req.body || {};
 
-    if (!name || !email || !password) {
+    if (typeof name !== 'string' || !name.trim() || typeof email !== 'string' || !email.trim() || !password) {
       return res.status(400).json({
         error: { code: 'VALIDATION_ERROR', message: 'Name, email and password are required' },
       });
@@ -101,6 +102,16 @@ router.post('/login', async (req, res, next) => {
   } catch (error) {
     return next(error);
   }
+});
+
+router.get('/me', requireAuth, (req, res) => {
+  return res.json({
+    user: {
+      id: req.user.id,
+      name: req.user.name,
+      email: req.user.email,
+    },
+  });
 });
 
 module.exports = router;

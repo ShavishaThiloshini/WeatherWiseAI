@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
+require('dotenv').config();
 const mysql = require('mysql2/promise');
 
 const connectionString = process.env.DATABASE_URL;
@@ -25,6 +26,7 @@ function loadSchemaStatements() {
 
 async function initializeDatabase() {
   if (pool) {
+    await pool.query('SELECT 1');
     for (const statement of loadSchemaStatements()) {
       await pool.query(statement);
     }
@@ -33,6 +35,10 @@ async function initializeDatabase() {
 
   global.__weatherwiseUsers = [];
   return true;
+}
+
+async function closeDatabase() {
+  if (pool) await pool.end();
 }
 
 async function query(sql, values) {
@@ -204,6 +210,7 @@ module.exports = {
   query,
   checkDatabaseConnection,
   initializeDatabase,
+  closeDatabase,
   findUserByEmail,
   findUserById,
   createUser,

@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const jwt = require('jsonwebtoken');
 const app = require('../src/app');
 
 const request = async (method, path, body) => {
@@ -66,6 +67,45 @@ test('POST /api/v1/auth/login returns token for valid credentials', async () => 
 
     assert.equal(result.status, 200);
     assert.ok(result.payload.token);
+  } finally {
+    await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+  }
+});
+
+test('GET /api/v1/auth/me returns the authenticated user', async () => {
+  const server = await startServer();
+  try {
+    const registration = await request('POST', '/api/v1/auth/register', {
+      name: 'Profile User',
+      email: `profile-${Date.now()}@test.com`,
+      password: 'secret123',
+    });
+
+    const result = await fetch('http://127.0.0.1:3001/api/v1/auth/me', {
+      headers: { Authorization: `Bearer ${registration.payload.token}` },
+    });
+
+    assert.equal(result.status, 200);
+    assert.deepEqual((await result.json()).user, registration.payload.user);
+  } finally {
+    await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+  }
+});
+
+test('GET /api/v1/auth/me rejects a token for a missing user', async () => {
+  const server = await startServer();
+  try {
+    const token = jwt.sign(
+      { sub: 'missing-user', email: 'missing@test.com', name: 'Missing User' },
+      process.env.JWT_SECRET || 'weatherwise-dev-secret',
+      { expiresIn: '7d' },
+    );
+    const result = await fetch('http://127.0.0.1:3001/api/v1/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    assert.equal(result.status, 401);
+    assert.equal((await result.json()).error.code, 'USER_NOT_FOUND');
   } finally {
     await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
   }

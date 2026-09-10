@@ -10,8 +10,9 @@ const { notFoundHandler, errorHandler } = require('./middleware/error-handler');
 
 const app = express();
 
-initializeDatabase().catch((error) => {
+const databaseReady = initializeDatabase().catch((error) => {
   console.warn('Database initialization skipped or failed:', error.message);
+  throw error;
 });
 
 app.disable('x-powered-by');
@@ -34,3 +35,4 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 module.exports = app;
+module.exports.databaseReady = databaseReady;
