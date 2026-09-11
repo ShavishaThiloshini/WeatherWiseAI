@@ -3,11 +3,33 @@ import { StyleSheet, Text, View } from 'react-native';
 import { InfoCard } from '../components/InfoCard';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { WeatherCard } from '../components/WeatherCard';
-import { MOCK_WEATHER } from '../services/weatherService';
+import { ErrorView } from '../components/StateViews';
+import { LoadingPlaceholder } from '../components/LoadingPlaceholder';
+import { getCurrentLocation } from '../services/locationService';
+import { getCurrentWeather } from '../services/weatherService';
+import type { WeatherData } from '../types';
 import { COLORS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
 export function WeatherDetailsScreen() {
-  const weather = MOCK_WEATHER;
+  const [weather, setWeather] = React.useState<WeatherData | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const loadWeather = React.useCallback(async () => {
+    setError(null);
+    try {
+      const location = await getCurrentLocation();
+      setWeather(await getCurrentWeather(location.latitude, location.longitude));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load live weather.');
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadWeather();
+  }, [loadWeather]);
+
+  if (error) return <ErrorView message={error} onRetry={() => void loadWeather()} />;
+  if (!weather) return <LoadingPlaceholder />;
 
   return (
     <ScreenContainer scrollable>

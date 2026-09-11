@@ -7,6 +7,7 @@ const apiRouter = require('./routes');
 const authRouter = require('./routes/auth.routes');
 const { initializeDatabase } = require('./db');
 const { notFoundHandler, errorHandler } = require('./middleware/error-handler');
+const { rateLimit } = require('./middleware/rate-limit');
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
+app.use(rateLimit);
 
 app.get('/', (req, res) => {
   res.json({
