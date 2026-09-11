@@ -27,6 +27,7 @@ import { AIAssistantScreen } from '../screens/AIAssistantScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SafetyScreen } from '../screens/SafetyScreen';
 import { AuthScreen } from '../screens/AuthScreen';
+import { WeatherDetailsScreen } from '../screens/WeatherDetailsScreen';
 
 import { COLORS, TYPOGRAPHY } from '../constants/theme';
 
@@ -40,6 +41,11 @@ export type RootTabParamList = {
   Safety: undefined;
   TravelMap: undefined;
   Profile: undefined;
+};
+
+export type RootStackParamList = {
+  MainTabs: undefined;
+  WeatherDetails: undefined;
 };
 
 export type TravelMapStackParamList = {
@@ -121,6 +127,45 @@ function ProfileNavigator() {
 // ---------------------------------------------------------------------------
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
+const RootStack = createNativeStackNavigator<RootStackParamList>();
+
+function MainTabs({ onLogout }: { onLogout: () => void }) {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: COLORS.backgroundCard,
+          borderTopColor: COLORS.border,
+          borderTopWidth: 1,
+          height: 64,
+          paddingBottom: 8,
+        },
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.textSecondary,
+        tabBarLabelStyle: {
+          fontSize: TYPOGRAPHY.fontSize.xs,
+          fontWeight: TYPOGRAPHY.fontWeight.medium,
+        },
+        tabBarIcon: ({ focused }) => (
+          <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.6 }}>
+            {TAB_ICONS[route.name] ?? '●'}
+          </Text>
+        ),
+      })}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
+      <Tab.Screen name="Forecast" component={ForecastScreen} options={{ title: 'Forecast' }} />
+      <Tab.Screen name="Safety" component={SafetyScreen} options={{ title: 'Safety' }} />
+      <Tab.Screen name="TravelMap" component={TravelMapNavigator} options={{ title: 'Travel & Map' }} />
+      <Tab.Screen
+        name="Profile"
+        children={(props: any) => <ProfileScreen {...(props as any)} onLogout={onLogout} />}
+        options={{ title: 'Profile' }}
+      />
+    </Tab.Navigator>
+  );
+}
 
 export function RootNavigator({
   token,
@@ -137,40 +182,19 @@ export function RootNavigator({
 
   return (
     <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          headerShown: false,
-          tabBarStyle: {
-            backgroundColor: COLORS.backgroundCard,
-            borderTopColor: COLORS.border,
-            borderTopWidth: 1,
-            height: 64,
-            paddingBottom: 8,
-          },
-          tabBarActiveTintColor: COLORS.primary,
-          tabBarInactiveTintColor: COLORS.textSecondary,
-          tabBarLabelStyle: {
-            fontSize: TYPOGRAPHY.fontSize.xs,
-            fontWeight: TYPOGRAPHY.fontWeight.medium,
-          },
-          // Emoji tab icons (replace with react-native-vector-icons or similar in Day 2+)
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.6 }}>
-              {TAB_ICONS[route.name] ?? '●'}
-            </Text>
-          ),
-        })}
+      <RootStack.Navigator
+        screenOptions={{
+          headerStyle: { backgroundColor: COLORS.background },
+          headerTintColor: COLORS.textPrimary,
+          headerTitleStyle: { fontWeight: TYPOGRAPHY.fontWeight.semiBold },
+          contentStyle: { backgroundColor: COLORS.background },
+        }}
       >
-        <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
-        <Tab.Screen name="Forecast" component={ForecastScreen} options={{ title: 'Forecast' }} />
-        <Tab.Screen name="Safety" component={SafetyScreen} options={{ title: 'Safety' }} />
-        <Tab.Screen name="TravelMap" component={TravelMapNavigator} options={{ title: 'Travel & Map' }} />
-        <Tab.Screen
-          name="Profile"
-          children={(props: any) => <ProfileScreen {...(props as any)} onLogout={onLogout} />}
-          options={{ title: 'Profile' }}
-        />
-      </Tab.Navigator>
+        <RootStack.Screen name="MainTabs" options={{ headerShown: false }}>
+          {() => <MainTabs onLogout={onLogout} />}
+        </RootStack.Screen>
+        <RootStack.Screen name="WeatherDetails" component={WeatherDetailsScreen} options={{ title: 'Weather Details' }} />
+      </RootStack.Navigator>
     </NavigationContainer>
   );
 }

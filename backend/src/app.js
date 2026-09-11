@@ -7,11 +7,13 @@ const apiRouter = require('./routes');
 const authRouter = require('./routes/auth.routes');
 const { initializeDatabase } = require('./db');
 const { notFoundHandler, errorHandler } = require('./middleware/error-handler');
+const { rateLimit } = require('./middleware/rate-limit');
 
 const app = express();
 
-initializeDatabase().catch((error) => {
+const databaseReady = initializeDatabase().catch((error) => {
   console.warn('Database initialization skipped or failed:', error.message);
+  throw error;
 });
 
 app.disable('x-powered-by');
@@ -19,6 +21,7 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
+app.use(rateLimit);
 
 app.get('/', (req, res) => {
   res.json({
@@ -34,3 +37,4 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 module.exports = app;
+module.exports.databaseReady = databaseReady;

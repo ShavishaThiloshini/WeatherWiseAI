@@ -1,12 +1,16 @@
 /**
  * services/api.ts
  * Base API configuration for WeatherWise AI.
+ *
+ * Imports the API base URL from constants/config.ts so there is a single
+ * place to update the URL for staging / production deployments.
  */
 
-const API_BASE_URL = 'http://127.0.0.1:3000/api/v1';
-const REQUEST_TIMEOUT_MS = 10_000;
+import { API_BASE_URL, REQUEST_TIMEOUT_MS } from '../constants/config';
 
 let authToken: string | null = null;
+/** Called when the server responds with TOKEN_EXPIRED — triggers app-level logout. */
+let onTokenExpired: (() => void) | null = null;
 
 export function setAuthToken(token: string | null) {
   authToken = token;
@@ -14,6 +18,14 @@ export function setAuthToken(token: string | null) {
 
 export function clearAuthToken() {
   authToken = null;
+}
+
+/**
+ * Register a callback that is invoked when the backend returns TOKEN_EXPIRED.
+ * App.tsx uses this to trigger logout and redirect to the AuthScreen.
+ */
+export function setOnTokenExpired(handler: (() => void) | null) {
+  onTokenExpired = handler;
 }
 
 export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise<T> {
@@ -37,6 +49,11 @@ export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise
     const payload = await response.json().catch(() => null);
 
     if (!response.ok) {
+      // Handle token expiry at the transport layer so every screen benefits automatically.
+      if (response.status === 401 && payload?.error?.code === 'TOKEN_EXPIRED') {
+        clearAuthToken();
+        onTokenExpired?.();
+      }
       throw new Error(payload?.error?.message || `API error: ${response.status} ${response.statusText}`);
     }
 
