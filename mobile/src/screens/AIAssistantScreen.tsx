@@ -175,7 +175,7 @@ export function AIAssistantScreen() {
         sender: 'assistant',
         text: err instanceof Error
           ? `I'm sorry — I couldn't get an answer right now. ${err.message}`
-          : 'I'm sorry — something went wrong. Please try again.',
+          : "I'm sorry — something went wrong. Please try again.",
         reasoning: undefined,
       });
     } finally {
