@@ -22,7 +22,7 @@ import { SectionHeader } from '../components/SectionHeader';
 import { WeatherCard } from '../components/WeatherCard';
 import { InfoCard } from '../components/InfoCard';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
-import { MOCK_WEATHER } from '../services/weatherService';
+import { getDashboardRecommendations, MOCK_WEATHER } from '../services/weatherService';
 import { getCurrentLocation } from '../services/locationService';
 import type { LocationData } from '../types';
 
@@ -31,6 +31,7 @@ export function HomeScreen() {
   const weather = MOCK_WEATHER;
   const [location, setLocation] = React.useState<LocationData | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
+  const [recommendationMessage, setRecommendationMessage] = React.useState<string | null>(null);
 
   const loadLocation = React.useCallback(async () => {
     setLocationError(null);
@@ -44,6 +45,30 @@ export function HomeScreen() {
   React.useEffect(() => {
     void loadLocation();
   }, [loadLocation]);
+
+  React.useEffect(() => {
+    if (!location) return;
+
+    getDashboardRecommendations(
+      {
+        label: location.displayName,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+      {
+        temperature_c: weather.temperatureC,
+        feels_like_c: weather.feelsLikeC,
+        humidity_percent: weather.humidity,
+        wind_speed_kmh: weather.windSpeedKmh,
+        uv_index: weather.uvIndex,
+        rain_probability_percent: weather.rainProbability,
+        condition: weather.condition,
+      },
+    )
+      .then((response) => setRecommendationMessage(response.recommendations[0]?.message || null))
+      .catch(() => setRecommendationMessage(null));
+  }, [location, weather]);
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -125,6 +150,15 @@ export function HomeScreen() {
       {/* Smart Advice                                                         */}
       {/* ------------------------------------------------------------------ */}
       <SectionHeader title="Smart Advice" />
+
+      {recommendationMessage ? (
+        <InfoCard
+          icon="🤖"
+          title="AI Weather Advice"
+          description={recommendationMessage}
+          severity="info"
+        />
+      ) : null}
 
       {/* [MOCK] Clothing recommendation */}
       <InfoCard

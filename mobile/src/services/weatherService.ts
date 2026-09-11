@@ -70,3 +70,14 @@ export async function getRecommendations(
     body: JSON.stringify({ location_id: locationId, current, forecast }),
   });
 }
+
+export async function getDashboardRecommendations(
+  location: { id?: string | number; label: string; latitude: number; longitude: number; timezone?: string },
+  current: Record<string, unknown>,
+  forecast?: Record<string, unknown>,
+): Promise<RecommendationResponse> {
+  return apiFetch<RecommendationResponse>('/dashboard', {
+    method: 'POST',
+    body: JSON.stringify({ location, current, forecast }),
+  });
+}
