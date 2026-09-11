@@ -17,6 +17,8 @@
 
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { SectionHeader } from '../components/SectionHeader';
 import { WeatherCard } from '../components/WeatherCard';
@@ -25,8 +27,10 @@ import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constant
 import { getDashboardRecommendations, MOCK_WEATHER } from '../services/weatherService';
 import { getCurrentLocation } from '../services/locationService';
 import type { LocationData } from '../types';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 
 export function HomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   // [MOCK] Day 2+: Replace with real data from useWeather / useLocation hooks
   const weather = MOCK_WEATHER;
   const [location, setLocation] = React.useState<LocationData | null>(null);
@@ -95,13 +99,13 @@ export function HomeScreen() {
       {/* ------------------------------------------------------------------ */}
       {/* Hero weather card                                                    */}
       {/* ------------------------------------------------------------------ */}
-      <View style={styles.heroCard}>
+      <Pressable style={styles.heroCard} onPress={() => navigation.navigate('WeatherDetails')}>
         <Text style={styles.weatherEmoji}>⛅</Text>
         <Text style={styles.temperature}>{weather.temperatureC}°C</Text>
         <Text style={styles.conditionLabel}>{weather.conditionLabel}</Text>
         <Text style={styles.feelsLike}>Feels like {weather.feelsLikeC}°C</Text>
         <Text style={styles.locationFull}>{location?.displayName || 'Finding your current location'}</Text>
-      </View>
+      </Pressable>
 
       {locationError && (
         <View style={styles.locationError}>
