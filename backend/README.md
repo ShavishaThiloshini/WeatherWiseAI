@@ -46,6 +46,8 @@ factors, and indexes for user, location, cache, alert, and conversation reads.
 - `POST /api/v1/ai/assistant` - authenticated proxy to the AI assistant
 - `POST /api/v1/weather/recommend` - authenticated dashboard weather-to-advice proxy
 - `POST /api/v1/dashboard` - authenticated dashboard recommendation response
+- `GET/PATCH /api/v1/users/me` - authenticated user profile
+- `GET/PATCH /api/v1/users/preferences` - authenticated user preferences
 
 AI/dashboard requests must include either an owned `location_id` or a `location` object,
 plus a `current` weather object. The backend does not invent live provider data; a

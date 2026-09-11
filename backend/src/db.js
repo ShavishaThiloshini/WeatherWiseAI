@@ -14,6 +14,8 @@ const memoryUsers = global.__weatherwiseUsers || [];
 global.__weatherwiseUsers = memoryUsers;
 const memoryLocations = global.__weatherwiseLocations || [];
 global.__weatherwiseLocations = memoryLocations;
+const memoryPreferences = global.__weatherwisePreferences || [];
+global.__weatherwisePreferences = memoryPreferences;
 const schemaPath = path.join(__dirname, '..', 'database', 'schema.sql');
 
 function loadSchemaStatements() {
@@ -44,6 +46,7 @@ async function closeDatabase() {
 function resetMemoryStore() {
   memoryUsers.splice(0, memoryUsers.length);
   memoryLocations.splice(0, memoryLocations.length);
+  memoryPreferences.splice(0, memoryPreferences.length);
 }
 
 async function query(sql, values) {
@@ -108,6 +111,67 @@ async function createUser({ name, email, passwordHash }) {
     email: normalizedEmail,
     password_hash: passwordHash,
   };
+}
+
+async function updateUserName(userId, name) {
+  if (!pool) {
+    const user = memoryUsers.find((item) => String(item.id) === String(userId));
+    if (!user) return null;
+    user.name = name;
+    return user;
+  }
+
+  await query('UPDATE users SET name = ? WHERE id = ?', [name, userId]);
+  return findUserById(userId);
+}
+
+const DEFAULT_PREFERENCES = {
+  cold_tolerance: 'medium',
+  preferred_activity: null,
+  preferred_activity_time: null,
+  units: 'metric',
+  notifications_enabled: true,
+};
+
+async function getUserPreferences(userId) {
+  if (!pool) {
+    return {
+      user_id: userId,
+      ...(memoryPreferences.find((item) => String(item.user_id) === String(userId)) || DEFAULT_PREFERENCES),
+    };
+  }
+
+  const [rows] = await query(
+    'SELECT cold_tolerance, preferred_activity, preferred_activity_time, units, notifications_enabled FROM user_preferences WHERE user_id = ?',
+    [userId]
+  );
+  return { user_id: userId, ...(rows[0] || DEFAULT_PREFERENCES) };
+}
+
+async function updateUserPreferences(userId, preferences) {
+  const current = await getUserPreferences(userId);
+  const next = { ...current, ...preferences, user_id: userId };
+
+  if (!pool) {
+    const index = memoryPreferences.findIndex((item) => String(item.user_id) === String(userId));
+    if (index === -1) memoryPreferences.push(next);
+    else memoryPreferences[index] = next;
+    return next;
+  }
+
+  await query(
+    `INSERT INTO user_preferences
+      (id, user_id, cold_tolerance, preferred_activity, preferred_activity_time, units, notifications_enabled)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        cold_tolerance = VALUES(cold_tolerance),
+        preferred_activity = VALUES(preferred_activity),
+        preferred_activity_time = VALUES(preferred_activity_time),
+        units = VALUES(units),
+        notifications_enabled = VALUES(notifications_enabled)`,
+    [randomUUID(), userId, next.cold_tolerance, next.preferred_activity, next.preferred_activity_time, next.units, next.notifications_enabled]
+  );
+  return getUserPreferences(userId);
 }
 
 async function listLocationsByUserId(userId) {
@@ -220,6 +284,9 @@ module.exports = {
   findUserByEmail,
   findUserById,
   createUser,
+  updateUserName,
+  getUserPreferences,
+  updateUserPreferences,
   listLocationsByUserId,
   findLocationByIdForUser,
   createLocation,
