@@ -15,6 +15,8 @@ npm run dev
 
 The API runs on `http://localhost:3000` by default.
 
+Set `AI_SERVICE_URL` to the FastAPI service URL (default `http://127.0.0.1:8001`).
+
 ## MySQL setup
 
 Create a MySQL database named `weatherwise`, create a database user, and set
@@ -40,5 +42,13 @@ factors, and indexes for user, location, cache, alert, and conversation reads.
 
 - `GET /` - API service information
 - `GET /api/v1/health` - health check
+- `POST /api/v1/ai/recommend` - authenticated proxy to the FastAPI recommendation engine
+- `POST /api/v1/ai/assistant` - authenticated proxy to the AI assistant
+- `POST /api/v1/weather/recommend` - authenticated dashboard weather-to-advice proxy
+- `POST /api/v1/dashboard` - authenticated dashboard recommendation response
+
+AI/dashboard requests must include either an owned `location_id` or a `location` object,
+plus a `current` weather object. The backend does not invent live provider data; a
+weather adapter will supply that data in a later integration task.
 
 The API is versioned under `/api/v1` and uses a routes/controllers/middleware structure described in the TRD.

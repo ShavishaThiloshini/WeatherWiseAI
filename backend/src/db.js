@@ -41,6 +41,11 @@ async function closeDatabase() {
   if (pool) await pool.end();
 }
 
+function resetMemoryStore() {
+  memoryUsers.splice(0, memoryUsers.length);
+  memoryLocations.splice(0, memoryLocations.length);
+}
+
 async function query(sql, values) {
   if (!pool) {
     throw new Error('DATABASE_URL is not configured');
@@ -211,6 +216,7 @@ module.exports = {
   checkDatabaseConnection,
   initializeDatabase,
   closeDatabase,
+  resetMemoryStore,
   findUserByEmail,
   findUserById,
   createUser,

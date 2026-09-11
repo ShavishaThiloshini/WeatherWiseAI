@@ -113,6 +113,38 @@ export interface Recommendation {
   icon?: string;
 }
 
+export interface RecommendationResponse {
+  source: string;
+  request_id: string | null;
+  generated_at: string;
+  location: {
+    id: string | number | null;
+    label: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    timezone: string | null;
+  };
+  recommendations: Array<{
+    id: string;
+    category: RecommendationCategory;
+    title: string;
+    message: string;
+    reason: string;
+    priority: string;
+    risk_level: string;
+    severity: RecommendationSeverity;
+    factors: Array<Record<string, unknown>>;
+  }>;
+  alerts: Array<Record<string, unknown>>;
+  analysis: Record<string, unknown>;
+  assistant_context: {
+    summary: string;
+    limitations: string[];
+    location_label: string | null;
+    timezone: string | null;
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Weather Alerts
 // ---------------------------------------------------------------------------

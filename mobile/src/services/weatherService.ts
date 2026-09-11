@@ -6,7 +6,8 @@
  * the weather API integration is assigned.
  */
 
-import type { WeatherData, ForecastData } from '../types';
+import type { WeatherData, ForecastData, RecommendationResponse } from '../types';
+import { apiFetch } from './api';
 
 // ---------------------------------------------------------------------------
 // Mock data (clearly marked - replace in Day 2+)
@@ -57,4 +58,15 @@ export async function getForecast(
 ): Promise<ForecastData> {
   // TODO (Day 2+): Replace with: return apiFetch<ForecastData>(`/weather/forecast?lat=${_latitude}&lon=${_longitude}`);
   return Promise.resolve(MOCK_FORECAST);
+}
+
+export async function getRecommendations(
+  locationId: string | number,
+  current: Record<string, unknown>,
+  forecast?: Record<string, unknown>,
+): Promise<RecommendationResponse> {
+  return apiFetch<RecommendationResponse>('/dashboard', {
+    method: 'POST',
+    body: JSON.stringify({ location_id: locationId, current, forecast }),
+  });
 }
