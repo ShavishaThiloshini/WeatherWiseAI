@@ -24,17 +24,18 @@ import { SectionHeader } from '../components/SectionHeader';
 import { WeatherCard } from '../components/WeatherCard';
 import { InfoCard } from '../components/InfoCard';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
-import { getDashboardRecommendations, MOCK_WEATHER } from '../services/weatherService';
+import { getCurrentWeather, getDashboardRecommendations } from '../services/weatherService';
 import { getCurrentLocation } from '../services/locationService';
-import type { LocationData } from '../types';
+import type { LocationData, WeatherData } from '../types';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 export function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  // [MOCK] Day 2+: Replace with real data from useWeather / useLocation hooks
-  const weather = MOCK_WEATHER;
   const [location, setLocation] = React.useState<LocationData | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
+  const [weather, setWeather] = React.useState<WeatherData | null>(null);
+  const [weatherError, setWeatherError] = React.useState<string | null>(null);
+  const [isWeatherLoading, setIsWeatherLoading] = React.useState(false);
   const [recommendationMessage, setRecommendationMessage] = React.useState<string | null>(null);
 
   const loadLocation = React.useCallback(async () => {
@@ -50,8 +51,24 @@ export function HomeScreen() {
     void loadLocation();
   }, [loadLocation]);
 
+  const loadWeather = React.useCallback(async (nextLocation: LocationData) => {
+    setIsWeatherLoading(true);
+    setWeatherError(null);
+    try {
+      setWeather(await getCurrentWeather(nextLocation.latitude, nextLocation.longitude));
+    } catch (error) {
+      setWeatherError(error instanceof Error ? error.message : 'Unable to load current weather.');
+    } finally {
+      setIsWeatherLoading(false);
+    }
+  }, []);
+
   React.useEffect(() => {
-    if (!location) return;
+    if (location) void loadWeather(location);
+  }, [location, loadWeather]);
+
+  React.useEffect(() => {
+    if (!location || !weather) return;
 
     getDashboardRecommendations(
       {
@@ -73,6 +90,8 @@ export function HomeScreen() {
       .then((response) => setRecommendationMessage(response.recommendations[0]?.message || null))
       .catch(() => setRecommendationMessage(null));
   }, [location, weather]);
+
+      const weatherIcon = weather ? conditionIcon(weather.condition) : '🌥️';
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -99,13 +118,26 @@ export function HomeScreen() {
       {/* ------------------------------------------------------------------ */}
       {/* Hero weather card                                                    */}
       {/* ------------------------------------------------------------------ */}
-      <Pressable style={styles.heroCard} onPress={() => navigation.navigate('WeatherDetails')}>
-        <Text style={styles.weatherEmoji}>⛅</Text>
-        <Text style={styles.temperature}>{weather.temperatureC}°C</Text>
-        <Text style={styles.conditionLabel}>{weather.conditionLabel}</Text>
-        <Text style={styles.feelsLike}>Feels like {weather.feelsLikeC}°C</Text>
-        <Text style={styles.locationFull}>{location?.displayName || 'Finding your current location'}</Text>
-      </Pressable>
+      {weather ? (
+        <Pressable
+          style={styles.heroCard}
+          onPress={() => navigation.navigate('WeatherDetails')}
+          accessibilityRole="button"
+          accessibilityLabel="Open weather details"
+        >
+          <Text style={styles.weatherEmoji}>{weatherIcon}</Text>
+          <Text style={styles.temperature}>{weather.temperatureC}°C</Text>
+          <Text style={styles.conditionLabel}>{weather.conditionLabel}</Text>
+          <Text style={styles.feelsLike}>Feels like {weather.feelsLikeC}°C</Text>
+          <Text style={styles.locationFull}>{location?.displayName || 'Current location'}</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.heroCard}>
+          {isWeatherLoading ? <ActivityIndicator color={COLORS.white} size="large" /> : <Text style={styles.weatherEmoji}>🌥️</Text>}
+          <Text style={styles.loadingTitle}>{isWeatherLoading ? 'Updating weather' : 'Current weather unavailable'}</Text>
+          <Text style={styles.locationFull}>{location?.displayName || 'Waiting for your location'}</Text>
+        </View>
+      )}
 
       {locationError && (
         <View style={styles.locationError}>
@@ -116,39 +148,41 @@ export function HomeScreen() {
         </View>
       )}
 
+      {weatherError && (
+        <View style={styles.locationError}>
+          <Text style={styles.locationErrorText}>{weatherError}</Text>
+          {location ? (
+            <Pressable onPress={() => void loadWeather(location)} style={styles.retryButton}>
+              <Text style={styles.retryText}>Refresh weather</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      )}
+
       {/* ------------------------------------------------------------------ */}
       {/* Weather metrics grid                                                 */}
       {/* ------------------------------------------------------------------ */}
-      <SectionHeader title="Current Conditions" />
-      <View style={styles.metricsGrid}>
-        <WeatherCard
-          label="Humidity"
-          value={`${weather.humidity}%`}
-          icon="💧"
-          style={styles.gridItem}
-        />
-        <WeatherCard
-          label="Wind"
-          value={`${weather.windSpeedKmh} km/h`}
-          subLabel={weather.windDirection}
-          icon="🌬️"
-          style={styles.gridItem}
-        />
-        <WeatherCard
-          label="UV Index"
-          value={String(weather.uvIndex)}
-          subLabel={weather.uvIndex >= 8 ? 'Very High' : weather.uvIndex >= 6 ? 'High' : 'Moderate'}
-          icon="☀️"
-          style={styles.gridItem}
-        />
-        <WeatherCard
-          label="Rain"
-          value={`${weather.rainProbability}%`}
-          subLabel="Probability"
-          icon="🌧️"
-          style={styles.gridItem}
-        />
-      </View>
+      {weather ? (
+        <>
+          <SectionHeader title="Current Conditions" />
+          <View style={styles.metricsGrid}>
+            <WeatherCard label="Humidity" value={`${weather.humidity}%`} icon="💧" accentColor={COLORS.info} style={styles.gridItem} />
+            <WeatherCard label="Wind" value={`${weather.windSpeedKmh} km/h`} subLabel={weather.windDirection} icon="🌬️" accentColor={COLORS.secondary} style={styles.gridItem} />
+            <WeatherCard label="UV Index" value={String(weather.uvIndex)} subLabel={uvLabel(weather.uvIndex)} icon="☀️" accentColor={COLORS.warning} style={styles.gridItem} />
+            <WeatherCard label="Rain" value={`${weather.rainProbability}%`} subLabel="Probability" icon="🌧️" accentColor={COLORS.primary} style={styles.gridItem} />
+            <WeatherCard label="Visibility" value={`${weather.visibilityKm} km`} icon="👁️" accentColor={COLORS.success} style={styles.gridItem} />
+          </View>
+        </>
+      ) : isWeatherLoading ? (
+        <>
+          <SectionHeader title="Current Conditions" />
+          <View style={styles.metricsGrid}>
+            {[1, 2, 3, 4].map((item) => (
+              <View key={item} style={[styles.weatherSkeleton, styles.gridItem]} />
+            ))}
+          </View>
+        </>
+      ) : null}
 
       {/* ------------------------------------------------------------------ */}
       {/* Smart Advice                                                         */}
@@ -338,6 +372,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: '45%',
   },
+  weatherSkeleton: {
+    backgroundColor: COLORS.backgroundCard,
+    borderRadius: BORDER_RADIUS.m,
+    minHeight: 126,
+    opacity: 0.7,
+  },
 
   // No-alert banner
   noAlertBanner: {
@@ -358,4 +398,32 @@ const styles = StyleSheet.create({
     color: COLORS.success,
     fontWeight: TYPOGRAPHY.fontWeight.medium,
   },
+  loadingTitle: {
+    fontSize: TYPOGRAPHY.fontSize.l,
+    fontWeight: TYPOGRAPHY.fontWeight.semiBold,
+    color: COLORS.white,
+    marginTop: SPACING.m,
+  },
 });
+
+function conditionIcon(condition: WeatherData['condition']): string {
+  return {
+    sunny: '☀️',
+    'partly-cloudy': '⛅',
+    cloudy: '☁️',
+    rainy: '🌧️',
+    stormy: '⛈️',
+    snowy: '🌨️',
+    foggy: '🌫️',
+    windy: '🌬️',
+    unknown: '🌥️',
+  }[condition];
+}
+
+function uvLabel(uvIndex: number): string {
+  if (uvIndex >= 11) return 'Extreme';
+  if (uvIndex >= 8) return 'Very High';
+  if (uvIndex >= 6) return 'High';
+  if (uvIndex >= 3) return 'Moderate';
+  return 'Low';
+}
