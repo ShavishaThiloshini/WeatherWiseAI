@@ -91,7 +91,7 @@ export function HomeScreen() {
       .catch(() => setRecommendationMessage(null));
   }, [location, weather]);
 
-      const weatherIcon = weather ? conditionIcon(weather.condition) : '🌥️';
+  const weatherIcon = weather ? conditionIcon(weather.condition) : '🌥️';
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',

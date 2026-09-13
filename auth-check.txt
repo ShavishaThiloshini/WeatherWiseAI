@@ -1,0 +1,1 @@
+{"user":{"id":"aaa89b70-7054-48a9-aca8-f09fb8ea9f6b","name":"UI Audit","email":"uiaudit@example.com"},"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhYWE4OWI3MC03MDU0LTQ4YTktYWNhOC1mMDlmYjhlYTlmNmIiLCJlbWFpbCI6InVpYXVkaXRAZXhhbXBsZS5jb20iLCJuYW1lIjoiVUkgQXVkaXQiLCJpYXQiOjE3ODkzMDI1NjYsImV4cCI6MTc4OTkwNzM2Nn0.7V4slsFzpW-EKRYtbQsLbemmX0sCWT3Vj5l855tX6GU"}

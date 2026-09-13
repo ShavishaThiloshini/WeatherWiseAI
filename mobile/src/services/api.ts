@@ -1,10 +1,23 @@
 /**
  * services/api.ts
  * Base API configuration for WeatherWise AI.
+ *
+ * The base URL is resolved from the EXPO_PUBLIC_API_URL environment variable
+ * (see mobile/.env.local) so the app can target a device-reachable backend
+ * host instead of a hardcoded address. Falls back to the local dev backend.
  */
 
-const API_BASE_URL = 'http://127.0.0.1:3000/api/v1';
+const DEFAULT_API_BASE_URL = 'http://127.0.0.1:3001/api/v1';
 const REQUEST_TIMEOUT_MS = 10_000;
+
+/** Resolves the API base URL, stripping any trailing slash. */
+function resolveApiBaseUrl(): string {
+  const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (!configured) return DEFAULT_API_BASE_URL;
+  return configured.replace(/\/+$/, '');
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 let authToken: string | null = null;
 
