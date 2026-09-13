@@ -2,11 +2,21 @@
  * services/api.ts
  * Base API configuration for WeatherWise AI.
  *
- * Imports the API base URL from constants/config.ts so there is a single
- * place to update the URL for staging / production deployments.
+ * The base URL resolves first from EXPO_PUBLIC_API_URL so the app can target
+ * a device-reachable backend host during local testing. It then falls back to
+ * the central config file for default staging / production values.
  */
 
-import { API_BASE_URL, REQUEST_TIMEOUT_MS } from '../constants/config';
+import { API_BASE_URL as DEFAULT_API_BASE_URL, REQUEST_TIMEOUT_MS } from '../constants/config';
+
+/** Resolves the API base URL, stripping any trailing slash. */
+function resolveApiBaseUrl(): string {
+  const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (!configured) return DEFAULT_API_BASE_URL;
+  return configured.replace(/\/+$/, '');
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 let authToken: string | null = null;
 /** Called when the server responds with TOKEN_EXPIRED — triggers app-level logout. */

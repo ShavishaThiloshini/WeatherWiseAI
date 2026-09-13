@@ -6,24 +6,12 @@
  *  - Live weather data fetched from Open-Meteo via getCurrentWeather()
  *  - Smart Advice + Alerts from the backend AI dashboard via getDashboardRecommendations()
  *  - Loading, error, and empty states per UIUXDesignBrief §8
- *
- * Layout sections:
- *  1. App header (location + date)
- *  2. Hero weather card (temperature + condition) → taps to WeatherDetails
- *  3. Location error banner (if permission denied)
- *  4. Weather metrics grid (humidity, wind, UV, rain)
- *  5. Rain information card
- *  6. Smart Advice section (from backend AI engine)
- *  7. Activity scores (from backend AI engine)
- *  8. Plant Care recommendation (from backend AI engine)
- *  9. Severe Weather Alerts banner (from backend AI engine)
  */
 
 import React from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -35,7 +23,7 @@ import { ScreenContainer } from '../components/ScreenContainer';
 import { SectionHeader } from '../components/SectionHeader';
 import { WeatherCard } from '../components/WeatherCard';
 import { InfoCard } from '../components/InfoCard';
-import { ErrorView, EmptyView } from '../components/StateViews';
+import { ErrorView } from '../components/StateViews';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { getCurrentWeather, getDashboardRecommendations } from '../services/weatherService';
 import { getCurrentLocation } from '../services/locationService';
@@ -43,10 +31,6 @@ import type { LocationData, WeatherData, RecommendationResponse, RecommendationS
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type DashboardState = 'loading' | 'success' | 'error' | 'empty';
-
-// ---------------------------------------------------------------------------
-// Weather condition → emoji mapping
-// ---------------------------------------------------------------------------
 
 const CONDITION_EMOJI: Record<string, string> = {
   sunny: '☀️',
@@ -60,10 +44,6 @@ const CONDITION_EMOJI: Record<string, string> = {
   unknown: '🌡️',
 };
 
-// ---------------------------------------------------------------------------
-// Alert severity → style colours
-// ---------------------------------------------------------------------------
-
 function alertSeverityStyle(severity: string) {
   if (severity === 'high' || severity === 'emergency' || severity === 'warning') {
     return { bg: COLORS.dangerLight, border: COLORS.danger, text: COLORS.danger, icon: '🔴' };
@@ -74,10 +54,6 @@ function alertSeverityStyle(severity: string) {
   return { bg: COLORS.infoLight, border: COLORS.info, text: COLORS.info, icon: '🔵' };
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 export function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -85,58 +61,59 @@ export function HomeScreen() {
   const [location, setLocation] = React.useState<LocationData | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
   const [weather, setWeather] = React.useState<WeatherData | null>(null);
+  const [weatherError, setWeatherError] = React.useState<string | null>(null);
+  const [isWeatherLoading, setIsWeatherLoading] = React.useState(false);
   const [dashboard, setDashboard] = React.useState<RecommendationResponse | null>(null);
   const [dashboardError, setDashboardError] = React.useState<string | null>(null);
 
-  const today = new Date().toLocaleDateString('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
-
-  // ---- Load location + weather ----
-  const loadWeather = React.useCallback(async () => {
+  const loadWeather = React.useCallback(async (nextLocation?: LocationData) => {
     setDashboardState('loading');
     setLocationError(null);
     setDashboardError(null);
+    setWeatherError(null);
+    setIsWeatherLoading(true);
 
     try {
-      const loc = await getCurrentLocation();
+      const loc = nextLocation ?? (await getCurrentLocation());
       setLocation(loc);
 
       const liveWeather = await getCurrentWeather(loc.latitude, loc.longitude);
       setWeather(liveWeather);
       setDashboardState('success');
 
-      // Fire-and-forget dashboard recommendations after weather loads.
-      getDashboardRecommendations(
-        {
-          label: loc.displayName,
-          latitude: loc.latitude,
-          longitude: loc.longitude,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        },
-        {
-          temperature_c: liveWeather.temperatureC,
-          feels_like_c: liveWeather.feelsLikeC,
-          humidity_percent: liveWeather.humidity,
-          wind_speed_kmh: liveWeather.windSpeedKmh,
-          uv_index: liveWeather.uvIndex,
-          rain_probability_percent: liveWeather.rainProbability,
-          condition: liveWeather.condition,
-        },
-      )
-        .then(setDashboard)
-        .catch((err) => setDashboardError(err instanceof Error ? err.message : null));
+      try {
+        const response = await getDashboardRecommendations(
+          {
+            label: loc.displayName,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          },
+          {
+            temperature_c: liveWeather.temperatureC,
+            feels_like_c: liveWeather.feelsLikeC,
+            humidity_percent: liveWeather.humidity,
+            wind_speed_kmh: liveWeather.windSpeedKmh,
+            uv_index: liveWeather.uvIndex,
+            rain_probability_percent: liveWeather.rainProbability,
+            condition: liveWeather.condition,
+          },
+        );
+        setDashboard(response);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Recommendations unavailable.';
+        setDashboardError(message);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to load weather.';
       if (message.includes('Location permission') || message.includes('location')) {
         setLocationError(message);
-        // Still show the dashboard in error-with-location-info state
-        setDashboardState('error');
       } else {
-        setDashboardState('error');
+        setWeatherError(message);
       }
+      setDashboardState('error');
+    } finally {
+      setIsWeatherLoading(false);
     }
   }, []);
 
@@ -144,7 +121,6 @@ export function HomeScreen() {
     void loadWeather();
   }, [loadWeather]);
 
-  // ---- Derive recommendations from dashboard response ----
   const recommendations = dashboard?.recommendations ?? [];
   const alerts = dashboard?.alerts ?? [];
 
@@ -156,8 +132,15 @@ export function HomeScreen() {
   );
   const plantAdvice = recommendations.find((r) => r.category === 'plant-care');
 
-  // ---- Loading state ----
-  if (dashboardState === 'loading') {
+  const weatherIcon = weather ? conditionIcon(weather.condition) : '🌥️';
+
+  const today = new Date().toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+
+  if (dashboardState === 'loading' && !weather) {
     return (
       <ScreenContainer scrollable>
         <View style={styles.loadingContainer}>
@@ -168,27 +151,22 @@ export function HomeScreen() {
     );
   }
 
-  // ---- Error state (no weather at all) ----
   if (dashboardState === 'error' && !weather) {
     return (
       <ScreenContainer scrollable>
         <ErrorView
-          message={locationError || 'Unable to load weather. Please check your connection and try again.'}
+          message={locationError || weatherError || 'Unable to load weather. Please check your connection and try again.'}
           onRetry={() => { void loadWeather(); }}
         />
       </ScreenContainer>
     );
   }
 
-  // ---- Success (or partial success with location error) ----
   const w = weather;
   const conditionEmoji = CONDITION_EMOJI[w?.condition ?? 'unknown'] ?? '🌡️';
 
   return (
     <ScreenContainer scrollable>
-      {/* ------------------------------------------------------------------ */}
-      {/* App header                                                           */}
-      {/* ------------------------------------------------------------------ */}
       <View style={styles.header}>
         <View>
           <Text style={styles.appName}>WeatherWise AI</Text>
@@ -202,9 +180,6 @@ export function HomeScreen() {
         </View>
       </View>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Active alert banner (shown above hero if any active alert)          */}
-      {/* ------------------------------------------------------------------ */}
       {alerts.length > 0 && (() => {
         const topAlert = alerts[0] as Record<string, string>;
         const sStyle = alertSeverityStyle(String(topAlert.severity ?? ''));
@@ -225,24 +200,27 @@ export function HomeScreen() {
         );
       })()}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Hero weather card                                                    */}
-      {/* ------------------------------------------------------------------ */}
-      <Pressable style={styles.heroCard} onPress={() => navigation.navigate('WeatherDetails')}>
-        <Text style={styles.weatherEmoji}>{conditionEmoji}</Text>
-        {w ? (
-          <>
-            <Text style={styles.temperature}>{w.temperatureC}°C</Text>
-            <Text style={styles.conditionLabel}>{w.conditionLabel}</Text>
-            <Text style={styles.feelsLike}>Feels like {w.feelsLikeC}°C</Text>
-          </>
-        ) : (
-          <Text style={styles.conditionLabel}>Weather unavailable</Text>
-        )}
-        <Text style={styles.locationFull}>{location?.displayName ?? 'Finding your location…'}</Text>
-      </Pressable>
+      {weather ? (
+        <Pressable
+          style={styles.heroCard}
+          onPress={() => navigation.navigate('WeatherDetails')}
+          accessibilityRole="button"
+          accessibilityLabel="Open weather details"
+        >
+          <Text style={styles.weatherEmoji}>{weatherIcon}</Text>
+          <Text style={styles.temperature}>{weather.temperatureC}°C</Text>
+          <Text style={styles.conditionLabel}>{weather.conditionLabel}</Text>
+          <Text style={styles.feelsLike}>Feels like {weather.feelsLikeC}°C</Text>
+          <Text style={styles.locationFull}>{location?.displayName ?? 'Finding your location…'}</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.heroCard}>
+          {isWeatherLoading ? <ActivityIndicator color={COLORS.white} size="large" /> : <Text style={styles.weatherEmoji}>{conditionEmoji}</Text>}
+          <Text style={styles.loadingTitle}>{isWeatherLoading ? 'Updating weather' : 'Current weather unavailable'}</Text>
+          <Text style={styles.locationFull}>{location?.displayName ?? 'Waiting for your location'}</Text>
+        </View>
+      )}
 
-      {/* Location permission error */}
       {locationError && (
         <View style={styles.locationError}>
           <Text style={styles.locationErrorText}>{locationError}</Text>
@@ -257,67 +235,59 @@ export function HomeScreen() {
         </View>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Weather metrics grid                                                 */}
-      {/* ------------------------------------------------------------------ */}
-      {w && (
+      {weatherError && (
+        <View style={styles.locationError}>
+          <Text style={styles.locationErrorText}>{weatherError}</Text>
+          {location ? (
+            <Pressable onPress={() => void loadWeather(location)} style={styles.retryButton}>
+              <Text style={styles.retryText}>Refresh weather</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      )}
+
+      {weather ? (
         <>
           <SectionHeader title="Current Conditions" />
           <View style={styles.metricsGrid}>
-            <WeatherCard label="Humidity" value={`${w.humidity}%`} icon="💧" style={styles.gridItem} />
-            <WeatherCard
-              label="Wind"
-              value={`${w.windSpeedKmh} km/h`}
-              subLabel={w.windDirection}
-              icon="🌬️"
-              style={styles.gridItem}
-            />
-            <WeatherCard
-              label="UV Index"
-              value={String(w.uvIndex)}
-              subLabel={w.uvIndex >= 8 ? 'Very High' : w.uvIndex >= 6 ? 'High' : w.uvIndex >= 3 ? 'Moderate' : 'Low'}
-              icon="☀️"
-              style={styles.gridItem}
-            />
-            <WeatherCard
-              label="Rain"
-              value={`${w.rainProbability}%`}
-              subLabel="Probability"
-              icon="🌧️"
-              style={styles.gridItem}
-            />
+            <WeatherCard label="Humidity" value={`${weather.humidity}%`} icon="💧" accentColor={COLORS.info} style={styles.gridItem} />
+            <WeatherCard label="Wind" value={`${weather.windSpeedKmh} km/h`} subLabel={weather.windDirection} icon="🌬️" accentColor={COLORS.secondary} style={styles.gridItem} />
+            <WeatherCard label="UV Index" value={String(weather.uvIndex)} subLabel={uvLabel(weather.uvIndex)} icon="☀️" accentColor={COLORS.warning} style={styles.gridItem} />
+            <WeatherCard label="Rain" value={`${weather.rainProbability}%`} subLabel="Probability" icon="🌧️" accentColor={COLORS.primary} style={styles.gridItem} />
+            <WeatherCard label="Visibility" value={`${weather.visibilityKm} km`} icon="👁️" accentColor={COLORS.success} style={styles.gridItem} />
           </View>
 
-          {/* ---------------------------------------------------------------- */}
-          {/* Rain information card                                             */}
-          {/* ---------------------------------------------------------------- */}
           <SectionHeader title="Rain Information" />
           <View style={styles.rainCard}>
             <Text style={styles.rainIcon}>🌧️</Text>
             <View style={styles.rainInfo}>
               <Text style={styles.rainTitle}>Rain Probability</Text>
-              <Text style={styles.rainValue}>{w.rainProbability}%</Text>
+              <Text style={styles.rainValue}>{weather.rainProbability}%</Text>
               <Text style={styles.rainTiming}>
-                {w.rainProbability >= 70
+                {weather.rainProbability >= 70
                   ? 'Rain is very likely today — carry an umbrella.'
-                  : w.rainProbability >= 40
+                  : weather.rainProbability >= 40
                   ? 'Some chance of rain — consider carrying an umbrella.'
                   : 'Low chance of rain today.'}
               </Text>
             </View>
           </View>
         </>
-      )}
+      ) : isWeatherLoading ? (
+        <>
+          <SectionHeader title="Current Conditions" />
+          <View style={styles.metricsGrid}>
+            {[1, 2, 3, 4].map((item) => (
+              <View key={item} style={[styles.weatherSkeleton, styles.gridItem]} />
+            ))}
+          </View>
+        </>
+      ) : null}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Smart Advice (from backend AI engine)                               */}
-      {/* ------------------------------------------------------------------ */}
       <SectionHeader title="Smart Advice" />
       {dashboardError && (
         <View style={styles.dashboardErrorBanner}>
-          <Text style={styles.dashboardErrorText}>
-            ⚠️ Recommendations unavailable — using cached advice.
-          </Text>
+          <Text style={styles.dashboardErrorText}>⚠️ Recommendations unavailable — using cached advice.</Text>
         </View>
       )}
 
@@ -332,40 +302,29 @@ export function HomeScreen() {
           />
         ))
       ) : (
-        // Fallback static advice when backend recommendations aren't yet available
-        <>
-          {w && (
-            <>
-              <InfoCard
-                icon="👕"
-                title="Clothing"
-                description={clothingAdvice(w)}
-                severity="info"
-              />
-              <InfoCard
-                icon="☂️"
-                title="Umbrella"
-                description={
-                  w.rainProbability >= 50
-                    ? `Carry an umbrella — there's a ${w.rainProbability}% chance of rain today.`
-                    : 'No umbrella needed — low chance of rain today.'
-                }
-                severity={w.rainProbability >= 50 ? 'warning' : 'success'}
-              />
-              <InfoCard
-                icon="💧"
-                title="Hydration"
-                description={hydrationAdvice(w)}
-                severity={w.temperatureC >= 30 || w.uvIndex >= 6 ? 'warning' : 'success'}
-              />
-            </>
-          )}
-        </>
+        w ? (
+          <>
+            <InfoCard icon="👕" title="Clothing" description={clothingAdvice(w)} severity="info" />
+            <InfoCard
+              icon="☂️"
+              title="Umbrella"
+              description={
+                w.rainProbability >= 50
+                  ? `Carry an umbrella — there's a ${w.rainProbability}% chance of rain today.`
+                  : 'No umbrella needed — low chance of rain today.'
+              }
+              severity={w.rainProbability >= 50 ? 'warning' : 'success'}
+            />
+            <InfoCard
+              icon="💧"
+              title="Hydration"
+              description={hydrationAdvice(w)}
+              severity={w.temperatureC >= 30 || w.uvIndex >= 6 ? 'warning' : 'success'}
+            />
+          </>
+        ) : null
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Activity scores                                                      */}
-      {/* ------------------------------------------------------------------ */}
       {(activityAdvice.length > 0 || w) && (
         <>
           <SectionHeader title="Activity Scores" />
@@ -400,9 +359,6 @@ export function HomeScreen() {
         </>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Plant care                                                           */}
-      {/* ------------------------------------------------------------------ */}
       <SectionHeader title="Plant Care" />
       {plantAdvice ? (
         <InfoCard
@@ -426,9 +382,6 @@ export function HomeScreen() {
         />
       ) : null}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Severe weather alerts                                                */}
-      {/* ------------------------------------------------------------------ */}
       <SectionHeader title="Severe Weather Alerts" />
       {alerts.length > 0 ? (
         alerts.map((alert, idx) => {
@@ -447,9 +400,7 @@ export function HomeScreen() {
                 {a.reason ? (
                   <Text style={styles.alertDescription}>{String(a.reason)}</Text>
                 ) : null}
-                <Text style={styles.alertSeverityBadge}>
-                  {String(a.severity ?? '').toUpperCase()}
-                </Text>
+                <Text style={styles.alertSeverityBadge}>{String(a.severity ?? '').toUpperCase()}</Text>
               </View>
             </View>
           );
@@ -457,18 +408,12 @@ export function HomeScreen() {
       ) : (
         <View style={styles.noAlertBanner}>
           <Text style={styles.noAlertIcon}>✅</Text>
-          <Text style={styles.noAlertText}>
-            No active severe weather alerts for your area.
-          </Text>
+          <Text style={styles.noAlertText}>No active severe weather alerts for your area.</Text>
         </View>
       )}
     </ScreenContainer>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Utility functions — derive advice from live WeatherData when AI is absent
-// ---------------------------------------------------------------------------
 
 function categoryIcon(category: string): string {
   const map: Record<string, string> = {
@@ -551,10 +496,6 @@ function outdoorScore(w: WeatherData): number {
   return Math.max(0, score);
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
@@ -588,8 +529,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontWeight: TYPOGRAPHY.fontWeight.medium,
   },
-
-  // Alert banner (top of screen)
   alertBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -610,8 +549,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 2,
   },
-
-  // Hero card
   heroCard: {
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.xl,
@@ -647,8 +584,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
     opacity: 0.7,
   },
-
-  // Location error
   locationError: {
     backgroundColor: COLORS.dangerLight,
     borderRadius: BORDER_RADIUS.m,
@@ -670,8 +605,6 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.fontSize.s,
     fontWeight: TYPOGRAPHY.fontWeight.semiBold,
   },
-
-  // Metrics grid
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -682,8 +615,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: '45%',
   },
-
-  // Rain card
+  weatherSkeleton: {
+    backgroundColor: COLORS.backgroundCard,
+    borderRadius: BORDER_RADIUS.m,
+    minHeight: 126,
+    opacity: 0.7,
+  },
   rainCard: {
     flexDirection: 'row',
     backgroundColor: COLORS.backgroundCard,
@@ -715,8 +652,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
     lineHeight: 20,
   },
-
-  // Dashboard error banner
   dashboardErrorBanner: {
     backgroundColor: COLORS.warningLight,
     borderRadius: BORDER_RADIUS.m,
@@ -728,8 +663,6 @@ const styles = StyleSheet.create({
     color: COLORS.warning,
     textAlign: 'center',
   },
-
-  // Loading state
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
@@ -743,8 +676,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: SPACING.m,
   },
-
-  // Alert cards (in severe weather section)
   alertCard: {
     flexDirection: 'row',
     borderRadius: BORDER_RADIUS.m,
@@ -773,8 +704,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     letterSpacing: 0.5,
   },
-
-  // No-alert banner
   noAlertBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -791,4 +720,32 @@ const styles = StyleSheet.create({
     color: COLORS.success,
     fontWeight: TYPOGRAPHY.fontWeight.medium,
   },
+  loadingTitle: {
+    fontSize: TYPOGRAPHY.fontSize.l,
+    fontWeight: TYPOGRAPHY.fontWeight.semiBold,
+    color: COLORS.white,
+    marginTop: SPACING.m,
+  },
 });
+
+function conditionIcon(condition: WeatherData['condition']): string {
+  return {
+    sunny: '☀️',
+    'partly-cloudy': '⛅',
+    cloudy: '☁️',
+    rainy: '🌧️',
+    stormy: '⛈️',
+    snowy: '🌨️',
+    foggy: '🌫️',
+    windy: '🌬️',
+    unknown: '🌥️',
+  }[condition];
+}
+
+function uvLabel(uvIndex: number): string {
+  if (uvIndex >= 11) return 'Extreme';
+  if (uvIndex >= 8) return 'Very High';
+  if (uvIndex >= 6) return 'High';
+  if (uvIndex >= 3) return 'Moderate';
+  return 'Low';
+}

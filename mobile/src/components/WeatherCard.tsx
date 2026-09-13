@@ -15,12 +15,18 @@ interface WeatherCardProps {
   subLabel?: string;
   /** Emoji or short text icon, e.g. "💧" or "🌬️" */
   icon?: string;
+  /** Accent used to distinguish the metric at a glance. */
+  accentColor?: string;
   style?: StyleProp<ViewStyle>;
 }
 
-export function WeatherCard({ label, value, subLabel, icon, style }: WeatherCardProps) {
+export function WeatherCard({ label, value, subLabel, icon, accentColor = COLORS.primary, style }: WeatherCardProps) {
   return (
-    <View style={[styles.card, style]}>
+    <View
+      style={[styles.card, { borderTopColor: accentColor }, style]}
+      accessible
+      accessibilityLabel={[label, value, subLabel].filter(Boolean).join(', ')}
+    >
       {icon ? <Text style={styles.icon}>{icon}</Text> : null}
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.value}>{value}</Text>
@@ -32,9 +38,12 @@ export function WeatherCard({ label, value, subLabel, icon, style }: WeatherCard
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.backgroundCard,
+    borderTopWidth: 3,
     borderRadius: BORDER_RADIUS.m,
     padding: SPACING.m,
     alignItems: 'center',
+    minHeight: 126,
+    justifyContent: 'center',
     ...SHADOWS.subtle,
   },
   icon: {

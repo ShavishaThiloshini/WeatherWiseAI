@@ -5,7 +5,9 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const AUTH_BASE_URL = 'http://127.0.0.1:3000/api/v1/auth';
+import { API_BASE_URL } from './api';
+
+const AUTH_BASE_URL = `${API_BASE_URL}/auth`;
 const AUTH_TOKEN_KEY = '@weatherwise/auth-token';
 
 export interface AuthResponse {
