@@ -25,6 +25,49 @@ def test_heat_and_uv_recommendation() -> None:
     assert payload["analysis"]["risks"]["uv"] in {"HIGH", "CRITICAL"}
 
 
+def test_live_weather_envelope_drives_all_interpretation_rules() -> None:
+    response = client.post(
+        "/recommend",
+        json={
+            "request_id": "live-day-06",
+            "location": {
+                "id": "loc-home",
+                "label": "Home",
+                "latitude": 6.9271,
+                "longitude": 79.8612,
+                "timezone": "Asia/Colombo",
+            },
+            "current": {
+                "observed_at": "2026-09-13T12:00:00+05:30",
+                "temperature_c": 36,
+                "feels_like_c": 38,
+                "humidity_percent": 70,
+                "wind_speed_kmh": 45,
+                "wind_gust_kmh": 52,
+                "uv_index": 9,
+                "rain_probability_percent": 75,
+                "rain_intensity": "heavy",
+                "condition": "rain",
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    analysis = payload["analysis"]
+    risks = analysis["risks"]
+
+    assert payload["request_id"] == "live-day-06"
+    assert analysis["temperature"] == "hot"
+    assert analysis["rain"] == "heavy_rain"
+    assert analysis["wind"] == "strong"
+    assert analysis["uv"] == "very_high"
+    assert risks["heat"] in {"HIGH", "CRITICAL"}
+    assert risks["rain"] == "HIGH"
+    assert risks["wind"] == "HIGH"
+    assert analysis["activity"] in {"Poor", "Avoid"}
+
+
 def test_storm_recommendation_is_severe() -> None:
     response = client.post(
         "/recommend",
