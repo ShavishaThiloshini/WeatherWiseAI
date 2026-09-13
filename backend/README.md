@@ -44,6 +44,8 @@ factors, and indexes for user, location, cache, alert, and conversation reads.
 - `GET /api/v1/health` - health check
 - `POST /api/v1/ai/recommend` - authenticated proxy to the FastAPI recommendation engine
 - `POST /api/v1/ai/assistant` - authenticated proxy to the AI assistant
+- `GET /api/v1/weather/current?lat={latitude}&lon={longitude}` - normalized current weather
+- `GET /api/v1/weather/forecast?lat={latitude}&lon={longitude}` - normalized hourly and daily forecast
 - `POST /api/v1/weather/recommend` - authenticated dashboard weather-to-advice proxy
 - `POST /api/v1/dashboard` - authenticated dashboard recommendation response
 - `GET/PATCH /api/v1/users/me` - authenticated user profile
@@ -51,6 +53,10 @@ factors, and indexes for user, location, cache, alert, and conversation reads.
 
 AI/dashboard requests must include either an owned `location_id` or a `location` object,
 plus a `current` weather object. The backend does not invent live provider data; a
-weather adapter will supply that data in a later integration task.
+weather adapter now fetches Open-Meteo data server-side and normalizes it to Celsius,
+km/h, percentages, and the canonical condition fields before returning it or passing
+it to the AI service. Weather responses are cached briefly by coordinate; a provider
+failure returns the latest cached response as stale data when one is available, and
+otherwise returns `WEATHER_UNAVAILABLE`.
 
 The API is versioned under `/api/v1` and uses a routes/controllers/middleware structure described in the TRD.
