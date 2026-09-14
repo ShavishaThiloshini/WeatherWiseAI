@@ -5,6 +5,7 @@
 
 import type { WeatherData, ForecastData, RecommendationResponse } from '../types';
 import { apiFetch } from './api';
+export { toRecommendationForecast } from './forecastMapping';
 import { normalizeCurrentWeather } from './weatherNormalization';
 import type { OpenMeteoCurrentResponse } from './weatherNormalization';
 

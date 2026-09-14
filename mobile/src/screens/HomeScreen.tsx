@@ -24,9 +24,9 @@ import { SectionHeader } from '../components/SectionHeader';
 import { WeatherCard } from '../components/WeatherCard';
 import { InfoCard } from '../components/InfoCard';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
-import { getCurrentWeather, getDashboardRecommendations } from '../services/weatherService';
+import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommendationForecast } from '../services/weatherService';
 import { getCurrentLocation } from '../services/locationService';
-import type { LocationData, WeatherData } from '../types';
+import type { ForecastData, LocationData, WeatherData } from '../types';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 export function HomeScreen() {
@@ -34,6 +34,7 @@ export function HomeScreen() {
   const [location, setLocation] = React.useState<LocationData | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
   const [weather, setWeather] = React.useState<WeatherData | null>(null);
+  const [forecast, setForecast] = React.useState<ForecastData | null>(null);
   const [weatherError, setWeatherError] = React.useState<string | null>(null);
   const [isWeatherLoading, setIsWeatherLoading] = React.useState(false);
   const [recommendationMessage, setRecommendationMessage] = React.useState<string | null>(null);
@@ -56,6 +57,11 @@ export function HomeScreen() {
     setWeatherError(null);
     try {
       setWeather(await getCurrentWeather(nextLocation.latitude, nextLocation.longitude));
+      try {
+        setForecast(await getForecast(nextLocation.latitude, nextLocation.longitude));
+      } catch {
+        setForecast(null);
+      }
     } catch (error) {
       setWeatherError(error instanceof Error ? error.message : 'Unable to load current weather.');
     } finally {
@@ -86,10 +92,11 @@ export function HomeScreen() {
         rain_probability_percent: weather.rainProbability,
         condition: weather.condition,
       },
+      forecast ? toRecommendationForecast(forecast) : undefined,
     )
       .then((response) => setRecommendationMessage(response.recommendations[0]?.message || null))
       .catch(() => setRecommendationMessage(null));
-  }, [location, weather]);
+  }, [forecast, location, weather]);
 
       const weatherIcon = weather ? conditionIcon(weather.condition) : '🌥️';
 

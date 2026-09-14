@@ -38,11 +38,15 @@ function HourCard({ hour }: { hour: HourlyForecast }) {
     <View
       style={styles.hourCard}
       accessible
-      accessibilityLabel={`${formatHour(hour.time)}, ${hour.temperatureC} degrees, ${hour.rainProbability}% rain chance`}
+      accessibilityLabel={`${formatHour(hour.time)}, ${hour.temperatureC} degrees, ${hour.rainProbability}% rain chance${hour.feelsLikeC == null ? '' : `, feels like ${hour.feelsLikeC} degrees`}`}
     >
       <Text style={styles.hourTime}>{formatHour(hour.time)}</Text>
       <Text style={styles.hourIcon}>{conditionIcon(hour.condition)}</Text>
       <Text style={styles.hourTemp}>{hour.temperatureC}°</Text>
+      {hour.feelsLikeC != null && <Text style={styles.feelsLike}>Feels {hour.feelsLikeC}°</Text>}
+      <View style={styles.rainTrack} accessibilityLabel={`${hour.rainProbability}% rain probability`}>
+        <View style={[styles.rainBar, { width: `${Math.min(100, Math.max(0, hour.rainProbability))}%`, backgroundColor: rainColor(hour.rainProbability) }]} />
+      </View>
       <Text style={[styles.rainText, { color: rainColor(hour.rainProbability) }]}>☔ {hour.rainProbability}%</Text>
     </View>
   );
@@ -106,12 +110,12 @@ export function ForecastScreen() {
   return (
     <ScreenContainer scrollable>
       <Text style={styles.title}>Seven-day forecast</Text>
-      <Text style={styles.subtitle}>Tap a day to inspect temperatures, rain chance, and UV.</Text>
+      <Text style={styles.subtitle}>Rain probability and temperatures for the next 24 hours.</Text>
 
       <SectionHeader title="Next hours" />
       {forecast.hourly.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hourList}>
-          {forecast.hourly.slice(0, 12).map((hour) => <HourCard key={hour.time} hour={hour} />)}
+          {forecast.hourly.slice(0, 24).map((hour) => <HourCard key={hour.time} hour={hour} />)}
         </ScrollView>
       ) : <EmptyView message="Hourly details are unavailable." icon="🕒" />}
 
@@ -146,6 +150,9 @@ const styles = StyleSheet.create({
   hourTime: { color: COLORS.textSecondary, fontSize: TYPOGRAPHY.fontSize.xs },
   hourIcon: { fontSize: 25, marginVertical: SPACING.xs },
   hourTemp: { color: COLORS.textPrimary, fontSize: TYPOGRAPHY.fontSize.l, fontWeight: TYPOGRAPHY.fontWeight.bold },
+  feelsLike: { color: COLORS.textSecondary, fontSize: TYPOGRAPHY.fontSize.xs, marginTop: SPACING.xs },
+  rainTrack: { backgroundColor: COLORS.border, borderRadius: BORDER_RADIUS.s, height: 4, marginTop: SPACING.s, overflow: 'hidden', width: '100%' },
+  rainBar: { borderRadius: BORDER_RADIUS.s, height: '100%' },
   rainText: { fontSize: TYPOGRAPHY.fontSize.xs, marginTop: SPACING.xs },
   dayList: { gap: SPACING.s },
   dayRow: { alignItems: 'center', backgroundColor: COLORS.backgroundCard, borderRadius: BORDER_RADIUS.m, flexDirection: 'row', gap: SPACING.s, minHeight: 64, padding: SPACING.m },

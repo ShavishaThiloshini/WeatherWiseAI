@@ -1,6 +1,43 @@
+/// <reference types="node" />
+
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { normalizeCurrentWeather } from '../src/services/weatherNormalization.ts';
+import { toRecommendationForecast } from '../src/services/forecastMapping.ts';
+
+test('recommendation forecast preserves the next 24 hourly rain values', () => {
+  const forecast = toRecommendationForecast({
+    hourly: Array.from({ length: 25 }, (_, index) => ({
+      time: `2026-09-14T${String(index).padStart(2, '0')}:00`,
+      temperatureC: 20 + index,
+      condition: 'rainy',
+      rainProbability: index,
+    })),
+    daily: [{
+      date: '2026-09-14',
+      maxTempC: 32,
+      minTempC: 24,
+      condition: 'partly-cloudy',
+      conditionLabel: 'Partly Cloudy',
+      rainProbability: 60,
+      uvIndex: 8,
+    }],
+  });
+
+  assert.equal((forecast.hours as unknown[]).length, 24);
+  assert.deepEqual((forecast.hours as Array<Record<string, unknown>>)[23], {
+    time: '2026-09-14T23:00',
+    temperature_c: 43,
+    rain_probability_percent: 23,
+    condition: 'rainy',
+  });
+  assert.deepEqual((forecast.days as Array<Record<string, unknown>>)[0], {
+    date: '2026-09-14',
+    max_temp_c: 32,
+    min_temp_c: 24,
+    rain_probability_percent: 60,
+  });
+});
 
 test('current weather normalization handles missing optional arrays without NaN', () => {
   const weather = normalizeCurrentWeather({
