@@ -183,6 +183,39 @@ def test_low_rain_does_not_warn() -> None:
     assert "umbrella" not in categories(payload)
 
 
+def test_timing_uses_location_timezone_and_sunrise_boundaries() -> None:
+    payload = {
+        "location": {"timezone": "Asia/Colombo"},
+        "current": {
+            "temperature_c": 27,
+            "observed_at": "2026-09-09T01:00:00Z",
+            "sunrise": "06:00",
+            "sunset": "18:00",
+        },
+    }
+    result = recommend_from_payload(payload)
+    timing = [item for item in result["recommendations"] if item["category"] == "timing"]
+    assert timing
+    assert timing[0]["title"] == "Timing: Morning"
+    assert any(factor["name"] == "timezone" and factor["value"] == "Asia/Colombo" for factor in timing[0]["factors"])
+
+
+def test_timing_marks_after_sunset_as_night() -> None:
+    payload = {
+        "location": {"timezone": "UTC"},
+        "current": {"temperature_c": 22, "observed_at": "2026-09-09T19:00:00Z", "sunrise": "06:00", "sunset": "18:00"},
+    }
+    timing = [item for item in recommend_from_payload(payload)["recommendations"] if item["category"] == "timing"]
+    assert timing[0]["title"] == "Timing: Night"
+
+
+def test_timing_skips_missing_or_invalid_time() -> None:
+    missing = {"temperature": 22}
+    invalid = {"temperature": 22, "observed_at": "not-a-time", "timezone": "UTC"}
+    assert "timing" not in categories(missing)
+    assert "timing" not in categories(invalid)
+
+
 def test_envelope_rain_later_mentions_timing() -> None:
     payload = {
         "request_id": "req_later",
