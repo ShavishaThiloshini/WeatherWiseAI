@@ -216,6 +216,37 @@ def test_timing_skips_missing_or_invalid_time() -> None:
     assert "timing" not in categories(invalid)
 
 
+def test_multi_day_forecast_trend_warns_when_temperature_and_rain_change() -> None:
+    payload = {
+        "location": {"timezone": "UTC"},
+        "current": {"temperature_c": 24, "observed_at": "2026-09-09T12:00:00Z"},
+        "forecast": {
+            "days": [
+                {"date": "2026-09-09", "maxTempC": 24, "rainProbability": 10},
+                {"date": "2026-09-10", "maxTempC": 26, "rainProbability": 30},
+                {"date": "2026-09-11", "maxTempC": 28, "rainProbability": 80},
+            ]
+        },
+    }
+    trends = [item for item in recommend_from_payload(payload)["recommendations"] if item["category"] == "forecast"]
+    assert trends
+    assert "warmer" in trends[0]["message"]
+    assert "rain probability is increasing" in trends[0]["message"]
+
+
+def test_multi_day_forecast_trend_skips_flat_or_incomplete_data() -> None:
+    flat = {
+        "temperature": 24,
+        "forecast": {"days": [{"maxTempC": 24}, {"maxTempC": 25}]},
+    }
+    incomplete = {
+        "temperature": 24,
+        "forecast": {"days": [{"rainProbability": 10}]},
+    }
+    assert "forecast" not in categories(flat)
+    assert "forecast" not in categories(incomplete)
+
+
 def test_envelope_rain_later_mentions_timing() -> None:
     payload = {
         "request_id": "req_later",
