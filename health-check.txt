@@ -1,0 +1,1 @@
+{"status":"ok","service":"weatherwise-ai-api","environment":"development","timestamp":"2026-09-13T12:29:05.912Z"}
