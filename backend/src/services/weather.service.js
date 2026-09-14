@@ -76,8 +76,33 @@ async function getForecast(latitude, longitude) {
   };
 }
 
+async function getHourlyForecast(latitude, longitude) {
+  const weather = await getWeather(latitude, longitude);
+  
+  // Format the response specifically for the hourly forecast endpoint
+  const hourlyForecast = weather.hourly.map(hour => ({
+    time: hour.time,
+    temperature: hour.temperature,
+    feelsLike: hour.feelsLike,
+    condition: hour.condition,
+    humidity: hour.humidity,
+    windSpeed: hour.windSpeed,
+    windDirection: hour.windDirection,
+    uvLevel: hour.uvLevel,
+    rainProbability: hour.rainProbability
+  }));
+
+  return {
+    location: { 
+      latitude: Number(latitude), 
+      longitude: Number(longitude) 
+    },
+    hourlyForecast
+  };
+}
+
 function clearWeatherCache() {
   weatherCache.clear();
 }
 
-module.exports = { getCurrentWeather, getForecast, clearWeatherCache, validateCoordinates };
+module.exports = { getCurrentWeather, getForecast, getHourlyForecast, clearWeatherCache, validateCoordinates };

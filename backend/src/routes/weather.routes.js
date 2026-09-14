@@ -8,6 +8,7 @@ const router = express.Router();
 router.use(requireAuth);
 router.get('/current', controller.current);
 router.get('/forecast', controller.forecast);
+router.get('/hourly', controller.hourly);
 router.post('/recommend', recommendation);
 
 module.exports = router;

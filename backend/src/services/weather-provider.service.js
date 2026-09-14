@@ -29,7 +29,7 @@ async function fetchOpenMeteo(latitude, longitude, fetchImpl = global.fetch) {
     latitude: String(latitude),
     longitude: String(longitude),
     current: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,uv_index',
-    hourly: 'temperature_2m,precipitation_probability,visibility,weather_code',
+    hourly: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation_probability,visibility,weather_code,uv_index',
     daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,uv_index_max',
     forecast_days: '7',
     timezone: 'auto',
@@ -63,7 +63,13 @@ function normalizeProviderPayload(payload) {
   const hourly = (payload.hourly.time || []).map((time, index) => ({
     time,
     temperatureC: valueAt(payload.hourly.temperature_2m, index),
+    temperature: valueAt(payload.hourly.temperature_2m, index),
+    feelsLike: valueAt(payload.hourly.apparent_temperature, index),
     ...weatherCondition(valueAt(payload.hourly.weather_code, index)),
+    humidity: valueAt(payload.hourly.relative_humidity_2m, index),
+    windSpeed: valueAt(payload.hourly.wind_speed_10m, index),
+    windDirection: valueAt(payload.hourly.wind_direction_10m, index),
+    uvLevel: valueAt(payload.hourly.uv_index, index),
     rainProbability: valueAt(payload.hourly.precipitation_probability, index, 0),
     visibilityKm: valueAt(payload.hourly.visibility, index) === null
       ? null

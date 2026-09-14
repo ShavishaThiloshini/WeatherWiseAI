@@ -20,9 +20,14 @@ const providerPayload = {
   hourly: {
     time: ['2026-09-13T07:00', '2026-09-13T08:00'],
     temperature_2m: [30, 31.5],
+    apparent_temperature: [32.1, 34.2],
+    relative_humidity_2m: [80, 72],
+    wind_speed_10m: [15, 18],
+    wind_direction_10m: [120, 135],
     precipitation_probability: [20, 75],
     visibility: [10000, 8000],
     weather_code: [1, 2],
+    uv_index: [2, 8]
   },
   daily: {
     time: ['2026-09-13'],
@@ -101,15 +106,25 @@ test('weather endpoints fetch and cache normalized provider data', async () => {
     const token = await register(`weather-${Date.now()}@test.com`, port);
     const current = await request('GET', '/api/v1/weather/current?lat=6.9271&lon=79.8612', undefined, token, port);
     const forecast = await request('GET', '/api/v1/weather/forecast?lat=6.9271&lon=79.8612', undefined, token, port);
+    const hourly = await request('GET', '/api/v1/weather/hourly?lat=6.9271&lon=79.8612', undefined, token, port);
 
     assert.equal(current.status, 200);
     assert.equal(current.payload.current.temperature_c, 31.5);
     assert.equal(current.payload.current.rain_probability_percent, 75);
+    
     assert.equal(forecast.status, 200);
     assert.equal(forecast.payload.hourly[1].temperatureC, 31.5);
     assert.equal(forecast.payload.daily[0].uvIndex, 9);
+    
+    assert.equal(hourly.status, 200);
+    assert.equal(hourly.payload.hourlyForecast[1].temperature, 31.5);
+    assert.equal(hourly.payload.hourlyForecast[1].feelsLike, 34.2);
+    assert.equal(hourly.payload.hourlyForecast[1].humidity, 72);
+    assert.equal(hourly.payload.hourlyForecast[1].uvLevel, 8);
+    
     assert.equal(providerCalls, 1);
     assert.equal(forecast.payload.cached, true);
+    assert.equal(hourly.payload.cached, undefined); // Our getHourlyForecast mapped it directly, doesn't pass cached boolean by default, wait, I didn't include data_freshness and cached in getHourlyForecast, which is fine since the req didn't ask for it.
   } finally {
     global.fetch = originalFetch;
     clearWeatherCache();
