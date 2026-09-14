@@ -6,6 +6,7 @@ from engine.recommendation.priority import sort_recommendations
 from engine.rules.activity import activity_rules, activity_suitability
 from engine.rules.clothing import clothing_rules
 from engine.rules.cold import cold_risk_level, cold_rules
+from engine.rules.forecast import forecast_trend_rules
 from engine.rules.heat import heat_risk_level, heat_rules
 from engine.rules.hydration import hydration_rules
 from engine.rules.rain import rain_risk_level, rain_rules
@@ -93,6 +94,7 @@ def run_engine(weather: WeatherSnapshot) -> EngineResult:
     collected.extend(clothing_rules(weather))
     collected.extend(umbrella_rules(weather))
     collected.extend(activity_rules(weather))
+    collected.extend(forecast_trend_rules(weather))
     collected.extend(timing_rules(weather))
 
     resolved = resolve_conflicts(collected)

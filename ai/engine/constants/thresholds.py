@@ -92,7 +92,9 @@ CATEGORY_TIEBREAK: Final[dict[str, int]] = {
     "umbrella": 3,
     "travel": 4,
     "plant-care": 5,
-    "general": 6,
+    "forecast": 6,
+    "timing": 7,
+    "general": 8,
 }
 
 FIELD_TO_RECOMMENDATIONS: Final[dict[str, tuple[str, ...]]] = {

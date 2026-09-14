@@ -96,6 +96,31 @@ def _forecast_rain(forecast: dict | None) -> tuple[str | None, float | None, str
     return None, max_probability, intensity_from_rain, []
 
 
+def _forecast_days(forecast: dict | None) -> list[dict]:
+    if not forecast:
+        return []
+    days = forecast.get("days") or forecast.get("daily") or []
+    if not isinstance(days, list):
+        return []
+
+    normalized = []
+    for day in days:
+        if not isinstance(day, dict):
+            continue
+        date = _text(day.get("date") or day.get("time"))
+        max_temp = _finite_number(day.get("maxTempC", day.get("temperature_max_c")))
+        min_temp = _finite_number(day.get("minTempC", day.get("temperature_min_c")))
+        rain = _percent(day.get("rainProbability", day.get("rain_probability_percent")))
+        if date or max_temp is not None or min_temp is not None or rain is not None:
+            normalized.append({
+                "date": date,
+                "max_temp_c": max_temp,
+                "min_temp_c": min_temp,
+                "rain_probability_percent": rain,
+            })
+    return normalized
+
+
 def from_compact(
     payload: dict,
     *,
@@ -154,6 +179,7 @@ def from_compact(
         timezone=_text(location.get("timezone")),
         request_id=request_id,
         rain_timing=_text(payload.get("rain_timing")),
+        forecast_days=_forecast_days(payload.get("forecast")),
         limitations=limitations,
     )
 
@@ -227,6 +253,7 @@ def from_envelope(payload: dict) -> WeatherSnapshot:
         timezone=_text(location.get("timezone")),
         request_id=_text(payload.get("request_id")),
         rain_timing=timing,
+        forecast_days=_forecast_days(forecast),
         limitations=limitations,
     )
 

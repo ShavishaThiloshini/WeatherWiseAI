@@ -68,6 +68,9 @@ export interface HourlyForecast {
   temperatureC: number;
   condition: WeatherCondition;
   rainProbability: number;
+  feelsLikeC?: number;
+  humidity?: number;
+  uvIndex?: number;
 }
 
 export interface DailyForecast {
@@ -97,6 +100,8 @@ export type RecommendationCategory =
   | 'travel'
   | 'outdoor'
   | 'plant-care'
+  | 'forecast'
+  | 'timing'
   | 'general';
 
 export type RecommendationSeverity = 'info' | 'warning' | 'danger' | 'success';

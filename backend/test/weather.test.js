@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const app = require('../src/app');
 const { resetMemoryStore } = require('../src/db');
 const { clearWeatherCache } = require('../src/services/weather.service');
-const { normalizeProviderPayload } = require('../src/services/weather-provider.service');
+const { fetchOpenMeteo, normalizeProviderPayload } = require('../src/services/weather-provider.service');
 
 const providerPayload = {
   timezone: 'Asia/Colombo',
@@ -131,6 +131,48 @@ test('weather normalization preserves valid extremes and avoids invalid optional
   assert.deepEqual(normalized.daily.map((day) => day.date), ['2026-09-14', '2026-09-15']);
 });
 
+test('weather normalization preserves a complete seven-day forecast', () => {
+  const dailyDates = [
+    '2026-09-13', '2026-09-14', '2026-09-15', '2026-09-16',
+    '2026-09-17', '2026-09-18', '2026-09-19',
+  ];
+  const normalized = normalizeProviderPayload({
+    ...providerPayload,
+    daily: {
+      time: dailyDates,
+      temperature_2m_max: [33, 34, 32, 31, 30, 29, 28],
+      temperature_2m_min: [25, 26, 24, 23, 22, 21, 20],
+      precipitation_probability_max: [80, 20, 60, 10, 0, 90, 40],
+      weather_code: [61, 0, 3, 2, 0, 65, 80],
+      uv_index_max: [9, 10, 8, 7, 6, 5, 4],
+    },
+  });
+
+  assert.equal(normalized.daily.length, 7);
+  assert.deepEqual(normalized.daily.map((day) => day.date), dailyDates);
+  assert.deepEqual(normalized.daily.map((day) => day.rainProbability), [80, 20, 60, 10, 0, 90, 40]);
+  assert.equal(normalized.daily[5].condition, 'rainy');
+});
+
+test('provider failures become typed weather errors', async () => {
+  await assert.rejects(
+    fetchOpenMeteo(6.9, 79.8, async () => new Response('upstream failure', { status: 503 })),
+    (error) => error.code === 'WEATHER_UNAVAILABLE' && error.status === 503,
+  );
+
+  await assert.rejects(
+    fetchOpenMeteo(6.9, 79.8, async () => new Response('{invalid json', { status: 200 })),
+    (error) => error.code === 'WEATHER_INVALID_RESPONSE' && error.status === 503,
+  );
+
+  const timeoutError = new Error('aborted');
+  timeoutError.name = 'AbortError';
+  await assert.rejects(
+    fetchOpenMeteo(6.9, 79.8, async () => { throw timeoutError; }),
+    (error) => error.message === 'Weather provider timed out' && error.code === 'WEATHER_UNAVAILABLE',
+  );
+});
+
 test('weather endpoints fetch and cache normalized provider data', async () => {
   resetMemoryStore();
   clearWeatherCache();
@@ -160,12 +202,14 @@ test('weather endpoints fetch and cache normalized provider data', async () => {
     assert.equal(forecast.status, 200);
     assert.equal(forecast.payload.hourly[1].temperatureC, 31.5);
     assert.equal(forecast.payload.daily[0].uvIndex, 9);
+    assert.equal(forecast.payload.daily[0].rainProbability, 80);
     
     assert.equal(hourly.status, 200);
     assert.equal(hourly.payload.hourlyForecast[1].temperature, 31.5);
     assert.equal(hourly.payload.hourlyForecast[1].feelsLike, 34.2);
     assert.equal(hourly.payload.hourlyForecast[1].humidity, 72);
     assert.equal(hourly.payload.hourlyForecast[1].uvLevel, 8);
+    assert.equal(hourly.payload.hourlyForecast[1].rainProbability, 75);
     
     assert.equal(providerCalls, 1);
     assert.equal(forecast.payload.cached, true);

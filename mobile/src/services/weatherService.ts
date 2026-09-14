@@ -5,6 +5,8 @@
 
 import type { WeatherData, ForecastData, RecommendationResponse } from '../types';
 import { apiFetch } from './api';
+import { normalizeCurrentWeather } from './weatherNormalization';
+import type { OpenMeteoCurrentResponse } from './weatherNormalization';
 
 export const MOCK_WEATHER: WeatherData = {
   temperatureC: 29,
@@ -21,45 +23,21 @@ export const MOCK_WEATHER: WeatherData = {
 };
 
 export const MOCK_FORECAST: ForecastData = {
-  hourly: [],  // TODO: Populate with hourly mock data in Day 2+
-  daily: [],   // TODO: Populate with daily mock data in Day 2+
+  hourly: [],
+  daily: [],
 };
 
 const WEATHER_API_URL = 'https://api.open-meteo.com/v1/forecast';
 
-interface OpenMeteoResponse {
-  current?: {
-    time: string;
-    temperature_2m: number;
-    apparent_temperature: number;
-    relative_humidity_2m: number;
-    wind_speed_10m: number;
-    wind_direction_10m: number;
-    weather_code: number;
-    uv_index: number;
-  };
-  hourly?: {
-    time: string[];
-    precipitation_probability: number[];
-    visibility: number[];
-  };
-}
 
-function conditionForCode(code: number): Pick<WeatherData, 'condition' | 'conditionLabel'> {
-  if (code === 0) return { condition: 'sunny', conditionLabel: 'Clear Sky' };
-  if ([1, 2].includes(code)) return { condition: 'partly-cloudy', conditionLabel: 'Partly Cloudy' };
-  if (code === 3) return { condition: 'cloudy', conditionLabel: 'Overcast' };
-  if ([45, 48].includes(code)) return { condition: 'foggy', conditionLabel: 'Foggy' };
-  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) {
-    return { condition: 'rainy', conditionLabel: 'Rainy' };
-  }
-  if ([71, 73, 75, 77, 85, 86].includes(code)) return { condition: 'snowy', conditionLabel: 'Snowy' };
-  if ([95, 96, 99].includes(code)) return { condition: 'stormy', conditionLabel: 'Thunderstorm' };
-  return { condition: 'unknown', conditionLabel: 'Unknown' };
-}
+const WEATHER_CONDITIONS: WeatherData['condition'][] = [
+  'sunny', 'partly-cloudy', 'cloudy', 'rainy', 'stormy', 'snowy', 'foggy', 'windy', 'unknown',
+];
 
-function compassDirection(degrees: number): string {
-  return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(degrees / 45) % 8];
+function conditionFromProvider(value: unknown): WeatherData['condition'] {
+  return typeof value === 'string' && WEATHER_CONDITIONS.includes(value as WeatherData['condition'])
+    ? value as WeatherData['condition']
+    : 'unknown';
 }
 
 /** Fetches and normalizes the current weather for the given coordinates. */
@@ -78,22 +56,8 @@ export async function getCurrentWeather(
   const response = await fetch(`${WEATHER_API_URL}?${query.toString()}`);
   if (!response.ok) throw new Error(`Weather service returned ${response.status}.`);
 
-  const data = (await response.json()) as OpenMeteoResponse;
-  if (!data.current || !data.hourly) throw new Error('Weather service returned incomplete data.');
-
-  const hourIndex = Math.max(data.hourly.time.indexOf(data.current.time), 0);
-  return {
-    temperatureC: Math.round(data.current.temperature_2m),
-    feelsLikeC: Math.round(data.current.apparent_temperature),
-    ...conditionForCode(data.current.weather_code),
-    humidity: Math.round(data.current.relative_humidity_2m),
-    windSpeedKmh: Math.round(data.current.wind_speed_10m),
-    windDirection: compassDirection(data.current.wind_direction_10m),
-    uvIndex: Math.round(data.current.uv_index),
-    rainProbability: Math.round(data.hourly.precipitation_probability[hourIndex] ?? 0),
-    visibilityKm: Math.round((data.hourly.visibility[hourIndex] ?? 0) / 1000),
-    timestamp: data.current.time,
-  };
+  const data = (await response.json()) as OpenMeteoCurrentResponse;
+  return normalizeCurrentWeather(data);
 }
 
 /**
@@ -101,11 +65,34 @@ export async function getCurrentWeather(
  * @returns Forecast data until the forecast screen is connected to the provider.
  */
 export async function getForecast(
-  _latitude: number,
-  _longitude: number,
+  latitude: number,
+  longitude: number,
 ): Promise<ForecastData> {
-  // TODO (Day 2+): Replace with: return apiFetch<ForecastData>(`/weather/forecast?lat=${_latitude}&lon=${_longitude}`);
-  return Promise.resolve(MOCK_FORECAST);
+  const response = await apiFetch<{
+    hourly?: Array<Record<string, unknown>>;
+    daily?: Array<Record<string, unknown>>;
+  }>(`/weather/forecast?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`);
+
+  return {
+    hourly: (response.hourly || []).map((hour) => ({
+      time: String(hour.time || ''),
+      temperatureC: Number(hour.temperatureC ?? 0),
+      condition: conditionFromProvider(hour.condition),
+      rainProbability: Number(hour.rainProbability ?? 0),
+      feelsLikeC: hour.feelsLike == null ? undefined : Number(hour.feelsLike),
+      humidity: hour.humidity == null ? undefined : Number(hour.humidity),
+      uvIndex: hour.uvLevel == null ? undefined : Number(hour.uvLevel),
+    })),
+    daily: (response.daily || []).map((day) => ({
+      date: String(day.date || ''),
+      maxTempC: Number(day.maxTempC ?? 0),
+      minTempC: Number(day.minTempC ?? 0),
+      condition: conditionFromProvider(day.condition),
+      conditionLabel: String(day.conditionLabel || 'Unknown'),
+      rainProbability: Number(day.rainProbability ?? 0),
+      uvIndex: Number(day.uvIndex ?? 0),
+    })),
+  };
 }
 
 export async function getRecommendations(
