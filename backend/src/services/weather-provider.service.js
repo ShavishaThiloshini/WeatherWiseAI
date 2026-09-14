@@ -73,7 +73,7 @@ function normalizeProviderPayload(payload) {
     rainProbability: valueAt(payload.hourly.precipitation_probability, index, 0),
     visibilityKm: valueAt(payload.hourly.visibility, index) === null
       ? null
-      : valueAt(payload.hourly.visibility, index) / 1000,
+      : valueAt(payload.hourly.visibility, index, null) / 1000,
   }));
   const daily = (payload.daily.time || []).map((date, index) => ({
     date,
@@ -93,9 +93,9 @@ function normalizeProviderPayload(payload) {
       wind_direction_degrees: current.wind_direction_10m,
       uv_index: current.uv_index,
       rain_probability_percent: valueAt(payload.hourly.precipitation_probability, currentHour, 0),
-      visibility_km: valueAt(payload.hourly.visibility, currentHour) === null
+      visibility_km: valueAt(payload.hourly.visibility, currentHour, null) === null
         ? null
-        : valueAt(payload.hourly.visibility, currentHour) / 1000,
+        : valueAt(payload.hourly.visibility, currentHour, null) / 1000,
       ...currentCondition,
       observed_at: current.time,
     },

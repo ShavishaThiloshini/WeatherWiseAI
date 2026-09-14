@@ -86,6 +86,51 @@ test('provider payload is normalized into current, hourly, and daily weather dat
   assert.equal(normalized.daily[0].condition, 'rainy');
 });
 
+test('weather normalization preserves valid extremes and avoids invalid optional values', () => {
+  const normalized = normalizeProviderPayload({
+    timezone: 'UTC',
+    current: {
+      time: '2026-09-14T00:00',
+      temperature_2m: -40,
+      apparent_temperature: -45,
+      relative_humidity_2m: 100,
+      wind_speed_10m: 0,
+      wind_direction_10m: 360,
+      weather_code: 999,
+      uv_index: 0,
+    },
+    hourly: {
+      time: ['2026-09-14T00:00', '2026-09-14T01:00'],
+      temperature_2m: [-40, -39],
+      apparent_temperature: [-45, -44],
+      relative_humidity_2m: [100, 99],
+      wind_speed_10m: [0, 1],
+      wind_direction_10m: [360, 0],
+      precipitation_probability: [0, 100],
+      visibility: [null, 0],
+      weather_code: [999, 0],
+      uv_index: [0, 1],
+    },
+    daily: {
+      time: ['2026-09-14', '2026-09-15'],
+      temperature_2m_max: [-35, -30],
+      temperature_2m_min: [-45, -40],
+      precipitation_probability_max: [0, 100],
+      weather_code: [999, 0],
+      uv_index_max: [0, 1],
+    },
+  });
+
+  assert.equal(normalized.current.temperature_c, -40);
+  assert.equal(normalized.current.humidity_percent, 100);
+  assert.equal(normalized.current.visibility_km, null);
+  assert.equal(normalized.current.condition, 'unknown');
+  assert.equal(normalized.hourly[0].visibilityKm, null);
+  assert.equal(normalized.hourly[1].visibilityKm, 0);
+  assert.equal(normalized.daily[0].condition, 'unknown');
+  assert.deepEqual(normalized.daily.map((day) => day.date), ['2026-09-14', '2026-09-15']);
+});
+
 test('weather endpoints fetch and cache normalized provider data', async () => {
   resetMemoryStore();
   clearWeatherCache();
