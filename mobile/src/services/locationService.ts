@@ -7,6 +7,31 @@ import * as Location from 'expo-location';
 import type { LocationData } from '../types';
 import { apiFetch } from './api';
 
+interface ReverseGeocodeResponse {
+  address?: {
+    city?: string;
+    town?: string;
+    village?: string;
+    municipality?: string;
+    county?: string;
+    state?: string;
+    country?: string;
+  };
+}
+
+async function reverseGeocodeWithFallback(latitude: number, longitude: number) {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`,
+      { headers: { Accept: 'application/json' } },
+    );
+    if (!response.ok) return null;
+    return (await response.json()) as ReverseGeocodeResponse;
+  } catch {
+    return null;
+  }
+}
+
 export const MOCK_LOCATION: LocationData = {
   latitude: 6.9271,
   longitude: 79.8612,
@@ -25,10 +50,20 @@ export async function getCurrentLocation(): Promise<LocationData> {
   const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
   const { latitude, longitude } = position.coords;
   const [address] = await Location.reverseGeocodeAsync({ latitude, longitude });
+  const fallback = address?.city ? null : await reverseGeocodeWithFallback(latitude, longitude);
+  const fallbackAddress = fallback?.address;
 
-  const city = address?.city || address?.district || address?.subregion || 'Current location';
-  const region = address?.region || '';
-  const country = address?.country || '';
+  const city = address?.city
+    || address?.district
+    || address?.subregion
+    || fallbackAddress?.city
+    || fallbackAddress?.town
+    || fallbackAddress?.village
+    || fallbackAddress?.municipality
+    || fallbackAddress?.county
+    || 'Current location';
+  const region = address?.region || fallbackAddress?.state || '';
+  const country = address?.country || fallbackAddress?.country || '';
 
   return {
     latitude,
