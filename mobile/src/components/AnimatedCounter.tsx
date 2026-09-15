@@ -16,6 +16,7 @@ interface AnimatedCounterProps extends Omit<TextInputProps, 'value'> {
   value: number;
   prefix?: string;
   suffix?: string;
+  formatter?: (val: number) => string;
   animationType?: 'spring' | 'timing';
 }
 
@@ -23,11 +24,12 @@ export function AnimatedCounter({
   value,
   prefix = '',
   suffix = '',
+  formatter = (v) => Math.round(v).toString(),
   animationType = 'spring',
   style,
   ...rest
 }: AnimatedCounterProps) {
-  const animatedValue = useSharedValue(0);
+  const animatedValue = useSharedValue(0); // Start from 0 or perhaps initial value
 
   useEffect(() => {
     if (animationType === 'spring') {
@@ -45,10 +47,10 @@ export function AnimatedCounter({
   }, [value, animatedValue, animationType]);
 
   const animatedProps = useAnimatedProps(() => {
-    const formatted = Math.round(animatedValue.value).toString();
     return {
-      text: `${prefix}${formatted}${suffix}`,
-      defaultValue: `${prefix}${formatted}${suffix}`,
+      text: `${prefix}${formatter(animatedValue.value)}${suffix}`,
+      // Workaround for some React Native versions where 'text' isn't properly forwarded on TextInput
+      defaultValue: `${prefix}${formatter(animatedValue.value)}${suffix}`,
     } as any;
   });
 
@@ -56,7 +58,7 @@ export function AnimatedCounter({
     <AnimatedTextInput
       underlineColorAndroid="transparent"
       editable={false}
-      value={`${prefix}${Math.round(value)}${suffix}`}
+      value={`${prefix}${formatter(value)}${suffix}`}
       animatedProps={animatedProps}
       style={[styles.text, style]}
       {...rest}
@@ -71,5 +73,5 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     color: '#fff',
   },
-});
+;
 
