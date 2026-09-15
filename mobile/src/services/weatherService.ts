@@ -96,6 +96,103 @@ export async function getForecast(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Open-Meteo weather code helpers (shared with getForecastDirect)
+// ---------------------------------------------------------------------------
+
+/** Normalizes an Open-Meteo WMO weather interpretation code to a WeatherCondition. */
+function conditionFromCode(code: number): { condition: WeatherData['condition']; conditionLabel: string } {
+  if (code === 0) return { condition: 'sunny', conditionLabel: 'Clear Sky' };
+  if (code === 1 || code === 2) return { condition: 'partly-cloudy', conditionLabel: 'Partly Cloudy' };
+  if (code === 3) return { condition: 'cloudy', conditionLabel: 'Overcast' };
+  if (code === 45 || code === 48) return { condition: 'foggy', conditionLabel: 'Foggy' };
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code))
+    return { condition: 'rainy', conditionLabel: 'Rainy' };
+  if ([71, 73, 75, 77, 85, 86].includes(code))
+    return { condition: 'snowy', conditionLabel: 'Snowy' };
+  if ([95, 96, 99].includes(code))
+    return { condition: 'stormy', conditionLabel: 'Thunderstorm' };
+  return { condition: 'unknown', conditionLabel: 'Unknown' };
+}
+
+/**
+ * Direct Open-Meteo 7-day forecast fetch.
+ *
+ * Used as a fallback when the backend /weather/forecast endpoint is
+ * unavailable (e.g. backend not running, network error, or auth failure).
+ * The response is normalized to the same ForecastData shape as getForecast().
+ *
+ * NOTE: This bypasses the backend cache. In production the backend-mediated
+ * path (getForecast) should always be preferred.
+ */
+export async function getForecastDirect(
+  latitude: number,
+  longitude: number,
+): Promise<ForecastData> {
+  const query = new URLSearchParams({
+    latitude: String(latitude),
+    longitude: String(longitude),
+    hourly: 'temperature_2m,apparent_temperature,precipitation_probability,weather_code,uv_index',
+    daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,uv_index_max',
+    forecast_days: '7',
+    timezone: 'auto',
+  });
+
+  const response = await fetch(`${WEATHER_API_URL}?${query.toString()}`);
+  if (!response.ok) throw new Error(`Weather provider returned ${response.status}.`);
+
+  const data = (await response.json()) as {
+    hourly?: {
+      time: string[];
+      temperature_2m: number[];
+      apparent_temperature: number[];
+      precipitation_probability: number[];
+      weather_code: number[];
+      uv_index: number[];
+    };
+    daily?: {
+      time: string[];
+      temperature_2m_max: number[];
+      temperature_2m_min: number[];
+      precipitation_probability_max: number[];
+      weather_code: number[];
+      uv_index_max: number[];
+    };
+  };
+
+  const hourly: ForecastData['hourly'] = (data.hourly?.time ?? []).map((time, i) => {
+    const code = data.hourly?.weather_code[i] ?? 0;
+    return {
+      time,
+      temperatureC: Math.round(data.hourly?.temperature_2m[i] ?? 0),
+      condition: conditionFromCode(code).condition,
+      rainProbability: Math.min(100, Math.max(0, data.hourly?.precipitation_probability[i] ?? 0)),
+      feelsLikeC: data.hourly?.apparent_temperature[i] != null
+        ? Math.round(data.hourly.apparent_temperature[i])
+        : undefined,
+      uvIndex: data.hourly?.uv_index[i] != null
+        ? Math.round(data.hourly.uv_index[i])
+        : undefined,
+    };
+  });
+
+  const daily: ForecastData['daily'] = (data.daily?.time ?? []).map((date, i) => {
+    const code = data.daily?.weather_code[i] ?? 0;
+    const { condition, conditionLabel } = conditionFromCode(code);
+    return {
+      date,
+      maxTempC: Math.round(data.daily?.temperature_2m_max[i] ?? 0),
+      minTempC: Math.round(data.daily?.temperature_2m_min[i] ?? 0),
+      condition,
+      conditionLabel,
+      rainProbability: Math.min(100, Math.max(0, data.daily?.precipitation_probability_max[i] ?? 0)),
+      uvIndex: Math.round(data.daily?.uv_index_max[i] ?? 0),
+    };
+  });
+
+  return { hourly, daily };
+}
+
 export async function getRecommendations(
   locationId: string | number,
   current: Record<string, unknown>,
