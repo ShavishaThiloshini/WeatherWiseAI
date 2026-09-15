@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, TextStyle } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
 interface SectionHeaderProps {
@@ -12,12 +12,13 @@ interface SectionHeaderProps {
   /** Optional right-side action label (e.g. "See All") */
   actionLabel?: string;
   onActionPress?: () => void;
+  style?: TextStyle;
 }
 
-export function SectionHeader({ title, actionLabel, onActionPress }: SectionHeaderProps) {
+export function SectionHeader({ title, actionLabel, onActionPress, style }: SectionHeaderProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, style]}>{title}</Text>
       {actionLabel ? (
         <Text style={styles.action} onPress={onActionPress}>
           {actionLabel}

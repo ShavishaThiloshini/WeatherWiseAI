@@ -1,7 +1,7 @@
 /**
  * components/InfoCard.tsx
  * Reusable card for displaying Smart Advice recommendations.
- * Supports different severity levels with distinct visual styling.
+ * Redesigned for glossy liquid glass theme.
  */
 
 import React from 'react';
@@ -21,10 +21,10 @@ interface InfoCardProps {
 }
 
 const SEVERITY_COLORS: Record<RecommendationSeverity, { bg: string; accent: string }> = {
-  info: { bg: COLORS.infoLight, accent: COLORS.info },
-  success: { bg: COLORS.successLight, accent: COLORS.success },
-  warning: { bg: COLORS.warningLight, accent: COLORS.warning },
-  danger: { bg: COLORS.dangerLight, accent: COLORS.danger },
+  info: { bg: 'rgba(59, 130, 246, 0.2)', accent: '#60a5fa' },
+  success: { bg: 'rgba(34, 197, 94, 0.2)', accent: '#4ade80' },
+  warning: { bg: 'rgba(245, 158, 11, 0.2)', accent: '#fbbf24' },
+  danger: { bg: 'rgba(239, 68, 68, 0.2)', accent: '#f87171' },
 };
 
 export function InfoCard({
@@ -38,7 +38,7 @@ export function InfoCard({
   const { bg, accent } = SEVERITY_COLORS[severity];
 
   return (
-    <View style={[styles.card, { backgroundColor: COLORS.backgroundCard }, style]}>
+    <View style={[styles.card, style]}>
       {/* Left accent bar */}
       <View style={[styles.accentBar, { backgroundColor: accent }]} />
 
@@ -63,8 +63,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.m,
     flexDirection: 'row',
     overflow: 'hidden',
-    marginBottom: SPACING.s,
-    ...SHADOWS.subtle,
+    backgroundColor: 'transparent',
   },
   accentBar: {
     width: 4,
@@ -86,12 +85,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: TYPOGRAPHY.fontSize.m,
     fontWeight: TYPOGRAPHY.fontWeight.semiBold,
-    color: COLORS.textPrimary,
+    color: COLORS.white, // Changed for dark glossy theme
   },
   scoreBadge: {
     borderRadius: BORDER_RADIUS.round,
     paddingHorizontal: SPACING.s,
     paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   scoreText: {
     fontSize: TYPOGRAPHY.fontSize.xs,
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: TYPOGRAPHY.fontSize.s,
-    color: COLORS.textSecondary,
+    color: 'rgba(255, 255, 255, 0.7)', // Changed for dark glossy theme
     lineHeight: TYPOGRAPHY.fontSize.s * 1.5,
   },
 });

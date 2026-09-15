@@ -172,14 +172,10 @@ export function RootNavigator({
   onAuthenticate,
   onLogout,
 }: {
-  token: string | null;
-  onAuthenticate: (token: string) => void;
-  onLogout: () => void;
+  token?: string | null;
+  onAuthenticate?: (token: string) => void;
+  onLogout?: () => void;
 }) {
-  if (!token) {
-    return <AuthScreen onAuthenticate={onAuthenticate} />;
-  }
-
   return (
     <NavigationContainer>
       <RootStack.Navigator
@@ -191,7 +187,7 @@ export function RootNavigator({
         }}
       >
         <RootStack.Screen name="MainTabs" options={{ headerShown: false }}>
-          {() => <MainTabs onLogout={onLogout} />}
+          {() => <MainTabs onLogout={onLogout || (() => {})} />}
         </RootStack.Screen>
         <RootStack.Screen name="WeatherDetails" component={WeatherDetailsScreen} options={{ title: 'Weather Details' }} />
       </RootStack.Navigator>

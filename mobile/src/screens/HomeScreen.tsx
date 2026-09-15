@@ -1,29 +1,19 @@
 /**
  * screens/HomeScreen.tsx
- * Main Home screen for WeatherWise AI.
- *
- * Day 01 state: Uses mock/placeholder data to demonstrate the UI structure.
- * All values marked [MOCK] should be replaced with live data in Day 2+.
- *
- * Layout sections:
- *  1. App header (location + date)
- *  2. Main weather hero card (temperature + condition)
- *  3. Weather metrics grid (humidity, wind, UV, rain)
- *  4. Smart Advice section (clothing, umbrella, hydration)
- *  5. Activity scores (Travel Safety, Outdoor Activity)
- *  6. Plant Care recommendation
- *  7. Severe Weather Alerts placeholder
+ * Redesigned Home screen for WeatherWise AI with Liquid Glass UI.
  */
 
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ScreenContainer } from '../components/ScreenContainer';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SectionHeader } from '../components/SectionHeader';
-import { WeatherCard } from '../components/WeatherCard';
 import { InfoCard } from '../components/InfoCard';
-import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { LiquidHeader } from '../components/LiquidHeader';
+import { GlassCard } from '../components/GlassCard';
+import { AnimatedCounter } from '../components/AnimatedCounter';
+import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
 import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommendationForecast } from '../services/weatherService';
 import { getCurrentLocation } from '../services/locationService';
 import type { ForecastData, LocationData, WeatherData } from '../types';
@@ -98,7 +88,7 @@ export function HomeScreen() {
       .catch(() => setRecommendationMessage(null));
   }, [forecast, location, weather]);
 
-      const weatherIcon = weather ? conditionIcon(weather.condition) : '🌥️';
+  const weatherIcon = weather ? conditionIcon(weather.condition) : '🌥️';
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -107,216 +97,156 @@ export function HomeScreen() {
   });
 
   return (
-    <ScreenContainer scrollable>
-      {/* ------------------------------------------------------------------ */}
-      {/* App header                                                           */}
-      {/* ------------------------------------------------------------------ */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.appName}>WeatherWise AI</Text>
-          <Text style={styles.dateText}>{today}</Text>
-        </View>
-        <View style={styles.locationBadge}>
-          <Text style={styles.locationIcon}>📍</Text>
-          <Text style={styles.locationText}>{location?.city || 'Locating...'}</Text>
-        </View>
-      </View>
+    <View style={styles.root}>
+      <LinearGradient
+        colors={['#1a2a6c', '#112240', '#0a192f']}
+        style={StyleSheet.absoluteFill}
+      />
+      <LiquidHeader locationName={location?.city || 'Locating...'} dateString={today} />
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Hero weather card                                                    */}
-      {/* ------------------------------------------------------------------ */}
-      {weather ? (
-        <Pressable
-          style={styles.heroCard}
-          onPress={() => navigation.navigate('WeatherDetails')}
-          accessibilityRole="button"
-          accessibilityLabel="Open weather details"
-        >
-          <Text style={styles.weatherEmoji}>{weatherIcon}</Text>
-          <Text style={styles.temperature}>{weather.temperatureC}°C</Text>
-          <Text style={styles.conditionLabel}>{weather.conditionLabel}</Text>
-          <Text style={styles.feelsLike}>Feels like {weather.feelsLikeC}°C</Text>
-          <Text style={styles.locationFull}>{location?.displayName || 'Current location'}</Text>
-        </Pressable>
-      ) : (
-        <View style={styles.heroCard}>
-          {isWeatherLoading ? <ActivityIndicator color={COLORS.white} size="large" /> : <Text style={styles.weatherEmoji}>🌥️</Text>}
-          <Text style={styles.loadingTitle}>{isWeatherLoading ? 'Updating weather' : 'Current weather unavailable'}</Text>
-          <Text style={styles.locationFull}>{location?.displayName || 'Waiting for your location'}</Text>
-        </View>
-      )}
-
-      {locationError && (
-        <View style={styles.locationError}>
-          <Text style={styles.locationErrorText}>{locationError}</Text>
-          <Pressable onPress={() => void loadLocation()} style={styles.retryButton}>
-            <Text style={styles.retryText}>Try again</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* ------------------------------------------------------------------ */}
+        {/* Hero weather card (Glassy)                                         */}
+        {/* ------------------------------------------------------------------ */}
+        {weather ? (
+          <Pressable onPress={() => navigation.navigate('WeatherDetails')}>
+            <GlassCard style={styles.heroCard} intensity={40}>
+              <Text style={styles.weatherEmoji}>{weatherIcon}</Text>
+              <View style={styles.tempRow}>
+                <AnimatedCounter value={weather.temperatureC} style={styles.temperature} suffix="°C" />
+              </View>
+              <Text style={styles.conditionLabel}>{weather.conditionLabel}</Text>
+              <View style={styles.feelsLikeRow}>
+                <Text style={styles.feelsLike}>Feels like </Text>
+                <AnimatedCounter value={weather.feelsLikeC} style={styles.feelsLikeNumber} suffix="°C" />
+              </View>
+              <Text style={styles.locationFull}>{location?.displayName || 'Current location'}</Text>
+            </GlassCard>
           </Pressable>
-        </View>
-      )}
+        ) : (
+          <GlassCard style={styles.heroCard} intensity={20}>
+            {isWeatherLoading ? <ActivityIndicator color={COLORS.white} size="large" /> : <Text style={styles.weatherEmoji}>🌥️</Text>}
+            <Text style={styles.loadingTitle}>{isWeatherLoading ? 'Updating weather' : 'Current weather unavailable'}</Text>
+            <Text style={styles.locationFull}>{location?.displayName || 'Waiting for your location'}</Text>
+          </GlassCard>
+        )}
 
-      {weatherError && (
-        <View style={styles.locationError}>
-          <Text style={styles.locationErrorText}>{weatherError}</Text>
-          {location ? (
-            <Pressable onPress={() => void loadWeather(location)} style={styles.retryButton}>
-              <Text style={styles.retryText}>Refresh weather</Text>
+        {locationError && (
+          <GlassCard style={styles.locationError}>
+            <Text style={styles.locationErrorText}>{locationError}</Text>
+            <Pressable onPress={() => void loadLocation()} style={styles.retryButton}>
+              <Text style={styles.retryText}>Try again</Text>
             </Pressable>
-          ) : null}
-        </View>
-      )}
+          </GlassCard>
+        )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Weather metrics grid                                                 */}
-      {/* ------------------------------------------------------------------ */}
-      {weather ? (
-        <>
-          <SectionHeader title="Current Conditions" />
-          <View style={styles.metricsGrid}>
-            <WeatherCard label="Humidity" value={`${weather.humidity}%`} icon="💧" accentColor={COLORS.info} style={styles.gridItem} />
-            <WeatherCard label="Wind" value={`${weather.windSpeedKmh} km/h`} subLabel={weather.windDirection} icon="🌬️" accentColor={COLORS.secondary} style={styles.gridItem} />
-            <WeatherCard label="UV Index" value={String(weather.uvIndex)} subLabel={uvLabel(weather.uvIndex)} icon="☀️" accentColor={COLORS.warning} style={styles.gridItem} />
-            <WeatherCard label="Rain" value={`${weather.rainProbability}%`} subLabel="Probability" icon="🌧️" accentColor={COLORS.primary} style={styles.gridItem} />
-            <WeatherCard label="Visibility" value={`${weather.visibilityKm} km`} icon="👁️" accentColor={COLORS.success} style={styles.gridItem} />
-          </View>
-        </>
-      ) : isWeatherLoading ? (
-        <>
-          <SectionHeader title="Current Conditions" />
-          <View style={styles.metricsGrid}>
-            {[1, 2, 3, 4].map((item) => (
-              <View key={item} style={[styles.weatherSkeleton, styles.gridItem]} />
-            ))}
-          </View>
-        </>
-      ) : null}
+        {weatherError && (
+          <GlassCard style={styles.locationError}>
+            <Text style={styles.locationErrorText}>{weatherError}</Text>
+            {location ? (
+              <Pressable onPress={() => void loadWeather(location)} style={styles.retryButton}>
+                <Text style={styles.retryText}>Refresh weather</Text>
+              </Pressable>
+            ) : null}
+          </GlassCard>
+        )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Smart Advice                                                         */}
-      {/* ------------------------------------------------------------------ */}
-      <SectionHeader title="Smart Advice" />
+        {/* ------------------------------------------------------------------ */}
+        {/* Weather metrics grid (Glassy)                                      */}
+        {/* ------------------------------------------------------------------ */}
+        {weather ? (
+          <>
+            <SectionHeader title="Current Conditions" style={{ color: COLORS.white }} />
+            <View style={styles.metricsGrid}>
+              <GlassCard style={styles.gridItem}>
+                <Text style={styles.metricIcon}>💧</Text>
+                <Text style={styles.metricLabel}>Humidity</Text>
+                <AnimatedCounter value={weather.humidity} style={styles.metricValue} suffix="%" />
+              </GlassCard>
+              <GlassCard style={styles.gridItem}>
+                <Text style={styles.metricIcon}>🌬️</Text>
+                <Text style={styles.metricLabel}>Wind</Text>
+                <AnimatedCounter value={weather.windSpeedKmh} style={styles.metricValue} suffix=" km/h" />
+                <Text style={styles.metricSub}>{weather.windDirection}</Text>
+              </GlassCard>
+              <GlassCard style={styles.gridItem}>
+                <Text style={styles.metricIcon}>☀️</Text>
+                <Text style={styles.metricLabel}>UV Index</Text>
+                <AnimatedCounter value={weather.uvIndex} style={styles.metricValue} />
+                <Text style={styles.metricSub}>{uvLabel(weather.uvIndex)}</Text>
+              </GlassCard>
+              <GlassCard style={styles.gridItem}>
+                <Text style={styles.metricIcon}>🌧️</Text>
+                <Text style={styles.metricLabel}>Rain</Text>
+                <AnimatedCounter value={weather.rainProbability} style={styles.metricValue} suffix="%" />
+                <Text style={styles.metricSub}>Probability</Text>
+              </GlassCard>
+            </View>
+          </>
+        ) : isWeatherLoading ? (
+          <>
+            <SectionHeader title="Current Conditions" style={{ color: COLORS.white }} />
+            <View style={styles.metricsGrid}>
+              {[1, 2, 3, 4].map((item) => (
+                <GlassCard key={item} style={styles.gridItemSkeleton} />
+              ))}
+            </View>
+          </>
+        ) : null}
 
-      {recommendationMessage ? (
-        <InfoCard
-          icon="🤖"
-          title="AI Weather Advice"
-          description={recommendationMessage}
-          severity="info"
-        />
-      ) : null}
+        {/* ------------------------------------------------------------------ */}
+        {/* Smart Advice                                                         */}
+        {/* ------------------------------------------------------------------ */}
+        <SectionHeader title="Smart Advice" style={{ color: COLORS.white }} />
 
-      {/* [MOCK] Clothing recommendation */}
-      <InfoCard
-        icon="👕"
-        title="Clothing"
-        description="Light, breathable clothing recommended. It will be warm and partly cloudy today."
-        severity="info"
-      />
+        {recommendationMessage ? (
+          <GlassCard style={styles.infoCardWrapper}>
+            <InfoCard icon="🤖" title="AI Weather Advice" description={recommendationMessage} severity="info" />
+          </GlassCard>
+        ) : null}
 
-      {/* [MOCK] Umbrella recommendation */}
-      <InfoCard
-        icon="☂️"
-        title="Umbrella"
-        description="Consider carrying an umbrella — there's a 40% chance of rain this afternoon."
-        severity="warning"
-      />
+        <GlassCard style={styles.infoCardWrapper}>
+          <InfoCard icon="👕" title="Clothing" description="Light, breathable clothing recommended. It will be warm and partly cloudy today." severity="info" />
+        </GlassCard>
 
-      {/* [MOCK] Hydration recommendation */}
-      <InfoCard
-        icon="🥤"
-        title="Hydration"
-        description="Stay well hydrated. High humidity and temperature may increase fluid loss."
-        severity="success"
-      />
+        <GlassCard style={styles.infoCardWrapper}>
+          <InfoCard icon="☂️" title="Umbrella" description="Consider carrying an umbrella — there's a 40% chance of rain this afternoon." severity="warning" />
+        </GlassCard>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Activity scores                                                      */}
-      {/* ------------------------------------------------------------------ */}
-      <SectionHeader title="Activity Scores" />
+        {/* ------------------------------------------------------------------ */}
+        {/* Activity scores                                                      */}
+        {/* ------------------------------------------------------------------ */}
+        <SectionHeader title="Activity Scores" style={{ color: COLORS.white }} />
 
-      {/* [MOCK] Travel safety score */}
-      <InfoCard
-        icon="🚗"
-        title="Travel Safety"
-        description="Moderate conditions. Exercise caution if travelling during afternoon showers."
-        severity="warning"
-        score={68}
-      />
+        <GlassCard style={styles.infoCardWrapper}>
+          <InfoCard icon="🚗" title="Travel Safety" description="Moderate conditions. Exercise caution if travelling during afternoon showers." severity="warning" score={68} />
+        </GlassCard>
 
-      {/* [MOCK] Outdoor activity score */}
-      <InfoCard
-        icon="🏃"
-        title="Outdoor Activity"
-        description="Generally good conditions for outdoor activity. Avoid peak UV hours (10am–2pm)."
-        severity="success"
-        score={75}
-      />
+        <GlassCard style={styles.infoCardWrapper}>
+          <InfoCard icon="🏃" title="Outdoor Activity" description="Generally good conditions for outdoor activity. Avoid peak UV hours (10am–2pm)." severity="success" score={75} />
+        </GlassCard>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Plant care                                                           */}
-      {/* ------------------------------------------------------------------ */}
-      <SectionHeader title="Plant Care" />
-      <InfoCard
-        icon="🌿"
-        title="Plant Care"
-        description="Natural rainfall expected. You may not need to water outdoor plants today."
-        severity="success"
-      />
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Severe weather alerts                                                */}
-      {/* ------------------------------------------------------------------ */}
-      <SectionHeader title="Severe Weather Alerts" />
-      <View style={styles.noAlertBanner}>
-        <Text style={styles.noAlertIcon}>✅</Text>
-        <Text style={styles.noAlertText}>No active severe weather alerts for your area.</Text>
-      </View>
-    </ScreenContainer>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: SPACING.m,
+  root: {
+    flex: 1,
+    backgroundColor: '#0a192f',
   },
-  appName: {
-    fontSize: TYPOGRAPHY.fontSize.xxl,
-    fontWeight: TYPOGRAPHY.fontWeight.extraBold,
-    color: COLORS.textPrimary,
-  },
-  dateText: {
-    fontSize: TYPOGRAPHY.fontSize.s,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  locationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.backgroundCard,
-    borderRadius: BORDER_RADIUS.round,
-    paddingHorizontal: SPACING.s,
-    paddingVertical: SPACING.xs,
-    gap: 4,
-  },
-  locationIcon: {
-    fontSize: 14,
-  },
-  locationText: {
-    fontSize: TYPOGRAPHY.fontSize.s,
-    color: COLORS.textSecondary,
-    fontWeight: TYPOGRAPHY.fontWeight.medium,
+  scrollContent: {
+    padding: SPACING.m,
+    paddingBottom: 100,
   },
   locationError: {
-    backgroundColor: COLORS.dangerLight,
-    borderRadius: BORDER_RADIUS.m,
     marginBottom: SPACING.m,
-    padding: SPACING.m,
+    borderColor: COLORS.danger,
+    borderWidth: 1,
   },
   locationErrorText: {
-    color: COLORS.danger,
+    color: '#ff6b6b',
     fontSize: TYPOGRAPHY.fontSize.s,
     lineHeight: 20,
   },
@@ -326,46 +256,55 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
   },
   retryText: {
-    color: COLORS.primary,
+    color: COLORS.primaryLight,
     fontSize: TYPOGRAPHY.fontSize.s,
     fontWeight: TYPOGRAPHY.fontWeight.semiBold,
   },
 
   // Hero card
   heroCard: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.xl,
     alignItems: 'center',
     marginBottom: SPACING.m,
-    ...SHADOWS.card,
+    paddingVertical: SPACING.xl,
   },
   weatherEmoji: {
-    fontSize: 64,
+    fontSize: 72,
     marginBottom: SPACING.s,
   },
+  tempRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
   temperature: {
-    fontSize: TYPOGRAPHY.fontSize.display,
+    fontSize: 64,
     fontWeight: TYPOGRAPHY.fontWeight.extraBold,
     color: COLORS.white,
+    height: 75,
   },
   conditionLabel: {
     fontSize: TYPOGRAPHY.fontSize.l,
     fontWeight: TYPOGRAPHY.fontWeight.medium,
-    color: COLORS.primaryLight,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: SPACING.xs,
+  },
+  feelsLikeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: SPACING.xs,
   },
   feelsLike: {
     fontSize: TYPOGRAPHY.fontSize.s,
-    color: COLORS.primaryLight,
-    marginTop: SPACING.xs,
-    opacity: 0.85,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  feelsLikeNumber: {
+    fontSize: TYPOGRAPHY.fontSize.s,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: 'bold',
   },
   locationFull: {
     fontSize: TYPOGRAPHY.fontSize.s,
-    color: COLORS.primaryLight,
-    marginTop: SPACING.xs,
-    opacity: 0.7,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: SPACING.s,
   },
 
   // Metrics grid
@@ -373,37 +312,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: SPACING.s,
-    marginBottom: SPACING.xs,
+    marginBottom: SPACING.m,
   },
   gridItem: {
     flex: 1,
     minWidth: '45%',
-  },
-  weatherSkeleton: {
-    backgroundColor: COLORS.backgroundCard,
-    borderRadius: BORDER_RADIUS.m,
-    minHeight: 126,
-    opacity: 0.7,
-  },
-
-  // No-alert banner
-  noAlertBanner: {
-    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.successLight,
-    borderRadius: BORDER_RADIUS.m,
-    padding: SPACING.m,
-    gap: SPACING.s,
-    marginBottom: SPACING.s,
+    paddingVertical: SPACING.l,
   },
-  noAlertIcon: {
-    fontSize: 20,
-  },
-  noAlertText: {
+  gridItemSkeleton: {
     flex: 1,
-    fontSize: TYPOGRAPHY.fontSize.s,
-    color: COLORS.success,
-    fontWeight: TYPOGRAPHY.fontWeight.medium,
+    minWidth: '45%',
+    height: 140,
+  },
+  metricIcon: {
+    fontSize: 28,
+    marginBottom: SPACING.xs,
+  },
+  metricLabel: {
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 4,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  metricValue: {
+    fontSize: TYPOGRAPHY.fontSize.l,
+    fontWeight: 'bold',
+    color: COLORS.white,
+  },
+  metricSub: {
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 2,
+  },
+  
+  infoCardWrapper: {
+    marginBottom: SPACING.m,
+    padding: 0, 
+    // InfoCard already has internal padding, we wrap it purely for the glass effect
   },
   loadingTitle: {
     fontSize: TYPOGRAPHY.fontSize.l,
