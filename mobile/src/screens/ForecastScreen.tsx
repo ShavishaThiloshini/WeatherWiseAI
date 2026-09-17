@@ -4,7 +4,8 @@
  * Multi-Day / 7-Day Forecast screen for WeatherWise AI.
  *
  * Day 10 Implementation (Frontend — Shavisha):
- *  - Horizontally scrollable 24-hour strip at the top (per Design Brief §7.2)
+ *  - Horizontally scrollable 24-hour
+ * strip at the top (per Design Brief §7.2)
  *  - 7-day daily forecast list using the reusable DailyForecastCard component
  *  - Proportional temperature range bars anchored to the week's global min/max
  *  - Tapping a day card expands a detail panel showing all metrics

@@ -22,11 +22,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { SectionHeader } from '../components/SectionHeader';
 import { WeatherCard } from '../components/WeatherCard';
+import { ClothingRecommendationCard } from '../components/ClothingRecommendationCard';
 import { InfoCard } from '../components/InfoCard';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommendationForecast } from '../services/weatherService';
 import { getCurrentLocation } from '../services/locationService';
-import type { ForecastData, LocationData, WeatherData } from '../types';
+import type { ForecastData, LocationData, RecommendationResponse, WeatherData } from '../types';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 export function HomeScreen() {
@@ -37,7 +38,7 @@ export function HomeScreen() {
   const [forecast, setForecast] = React.useState<ForecastData | null>(null);
   const [weatherError, setWeatherError] = React.useState<string | null>(null);
   const [isWeatherLoading, setIsWeatherLoading] = React.useState(false);
-  const [recommendationMessage, setRecommendationMessage] = React.useState<string | null>(null);
+  const [recommendations, setRecommendations] = React.useState<RecommendationResponse['recommendations']>([]);
 
   const loadLocation = React.useCallback(async () => {
     setLocationError(null);
@@ -94,11 +95,13 @@ export function HomeScreen() {
       },
       forecast ? toRecommendationForecast(forecast) : undefined,
     )
-      .then((response) => setRecommendationMessage(response.recommendations[0]?.message || null))
-      .catch(() => setRecommendationMessage(null));
+      .then((response) => setRecommendations(response.recommendations))
+      .catch(() => setRecommendations([]));
   }, [forecast, location, weather]);
 
-      const weatherIcon = weather ? conditionIcon(weather.condition) : '🌥️';
+  const weatherIcon = weather ? conditionIcon(weather.condition) : '🌥️';
+  const clothingRecommendation = recommendations.find((recommendation) => recommendation.category === 'clothing');
+  const generalRecommendation = recommendations.find((recommendation) => recommendation.category !== 'clothing');
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -196,21 +199,18 @@ export function HomeScreen() {
       {/* ------------------------------------------------------------------ */}
       <SectionHeader title="Smart Advice" />
 
-      {recommendationMessage ? (
+      {generalRecommendation ? (
         <InfoCard
           icon="🤖"
           title="AI Weather Advice"
-          description={recommendationMessage}
+          description={generalRecommendation.message}
           severity="info"
         />
       ) : null}
 
-      {/* [MOCK] Clothing recommendation */}
-      <InfoCard
-        icon="👕"
-        title="Clothing"
-        description="Light, breathable clothing recommended. It will be warm and partly cloudy today."
-        severity="info"
+      <ClothingRecommendationCard
+        recommendation={clothingRecommendation}
+        weather={weather}
       />
 
       {/* [MOCK] Umbrella recommendation */}
