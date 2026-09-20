@@ -67,4 +67,15 @@ router.get('/heat', async (req, res, next) => {
   }
 });
 
+router.get('/activity', async (req, res, next) => {
+  try {
+    validateCoordinates(req.query.lat, req.query.lon);
+    const { getActivityData } = require('../services/activity.service');
+    const activityData = await getActivityData(req.query.lat, req.query.lon);
+    return res.json(activityData);
+  } catch (error) {
+    return next(error);
+  }
+});
+
 module.exports = router;

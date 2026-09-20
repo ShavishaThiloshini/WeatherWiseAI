@@ -46,6 +46,7 @@ factors, and indexes for user, location, cache, alert, and conversation reads.
 - `POST /api/v1/ai/assistant` - authenticated proxy to the AI assistant
 - `POST /api/v1/weather/recommend` - authenticated dashboard weather-to-advice proxy
 - `POST /api/v1/dashboard` - authenticated dashboard recommendation response
+- `GET /api/v1/weather/activity?lat=&lon=` - outdoor activity scores (walking, running, cycling)
 - `GET/PATCH /api/v1/users/me` - authenticated user profile
 - `GET/PATCH /api/v1/users/preferences` - authenticated user preferences
 
