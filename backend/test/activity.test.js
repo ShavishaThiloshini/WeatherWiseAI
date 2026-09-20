@@ -87,6 +87,62 @@ test('buildActivityRecommendations returns walking, running, and cycling scores'
   });
 });
 
+test('activity scores respond to different weather scenarios', () => {
+  const scenarios = [
+    {
+      name: 'comfortable day',
+      current: { temperature_c: 22, feels_like_c: 22, rain_probability_percent: 10, wind_speed_kmh: 8, uv_index: 3 },
+      expectedScores: [90, 88, 92],
+      expectedSuitability: ['excellent', 'excellent', 'excellent'],
+    },
+    {
+      name: 'warm sunny day',
+      current: { temperature_c: 28, feels_like_c: 29, rain_probability_percent: 10, wind_speed_kmh: 16, uv_index: 7 },
+      expectedScores: [72, 68, 74],
+      expectedSuitability: ['good', 'moderate', 'good'],
+    },
+    {
+      name: 'hot day',
+      current: { temperature_c: 36, feels_like_c: 38, rain_probability_percent: 10, wind_speed_kmh: 8, uv_index: 9 },
+      expectedScores: [38, 32, 28],
+      expectedSuitability: ['poor', 'poor', 'avoid'],
+    },
+    {
+      name: 'heavy rain',
+      current: { temperature_c: 24, feels_like_c: 24, rain_probability_percent: 85, wind_speed_kmh: 12, uv_index: 2 },
+      expectedScores: [20, 15, 10],
+      expectedSuitability: ['avoid', 'avoid', 'avoid'],
+    },
+    {
+      name: 'strong wind',
+      current: { temperature_c: 22, feels_like_c: 22, rain_probability_percent: 5, wind_speed_kmh: 65, uv_index: 3 },
+      expectedScores: [20, 15, 10],
+      expectedSuitability: ['avoid', 'avoid', 'avoid'],
+    },
+    {
+      name: 'mixed rain and heat',
+      current: { temperature_c: 30, feels_like_c: 31, rain_probability_percent: 45, wind_speed_kmh: 20, uv_index: 8 },
+      expectedScores: [55, 50, 52],
+      expectedSuitability: ['moderate', 'moderate', 'moderate'],
+    },
+  ];
+
+  scenarios.forEach((scenario) => {
+    const activities = buildActivityRecommendations(scenario.current);
+
+    assert.deepEqual(
+      activities.map((activity) => activity.score),
+      scenario.expectedScores,
+      `${scenario.name}: scores`,
+    );
+    assert.deepEqual(
+      activities.map((activity) => activity.suitability),
+      scenario.expectedSuitability,
+      `${scenario.name}: suitability`,
+    );
+  });
+});
+
 test('activity endpoint returns structured activity data', async () => {
   resetMemoryStore();
   clearWeatherCache();
