@@ -56,4 +56,15 @@ router.get('/hourly', async (req, res, next) => {
   }
 });
 
+router.get('/heat', async (req, res, next) => {
+  try {
+    validateCoordinates(req.query.lat, req.query.lon);
+    const { getHeatAndUVData } = require('../services/heat.service');
+    const heatData = await getHeatAndUVData(req.query.lat, req.query.lon);
+    return res.json(heatData);
+  } catch (error) {
+    return next(error);
+  }
+});
+
 module.exports = router;
