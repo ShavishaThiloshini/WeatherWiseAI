@@ -25,6 +25,7 @@ import { WeatherCard } from '../components/WeatherCard';
 import { ClothingRecommendationCard } from '../components/ClothingRecommendationCard';
 import { InfoCard } from '../components/InfoCard';
 import { ActivityRecommendationCard } from '../components/ActivityRecommendationCard';
+import { HydrationHeatWarningCard } from '../components/HydrationHeatWarningCard';
 import type { ActivityRecommendation } from '../components/ActivityRecommendationCard';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommendationForecast } from '../services/weatherService';
@@ -128,6 +129,7 @@ export function HomeScreen() {
   const [weatherError, setWeatherError] = React.useState<string | null>(null);
   const [isWeatherLoading, setIsWeatherLoading] = React.useState(false);
   const [recommendations, setRecommendations] = React.useState<RecommendationResponse['recommendations']>([]);
+  const [recommendationAnalysis, setRecommendationAnalysis] = React.useState<RecommendationResponse['analysis'] | null>(null);
 
   const loadLocation = React.useCallback(async () => {
     setLocationError(null);
@@ -184,12 +186,23 @@ export function HomeScreen() {
       },
       forecast ? toRecommendationForecast(forecast) : undefined,
     )
-      .then((response) => setRecommendations(response.recommendations))
-      .catch(() => setRecommendations([]));
+      .then((response) => {
+        setRecommendations(response.recommendations);
+        setRecommendationAnalysis(response.analysis);
+      })
+      .catch(() => {
+        setRecommendations([]);
+        setRecommendationAnalysis(null);
+      });
   }, [forecast, location, weather]);
 
   const weatherIcon = weather ? conditionIcon(weather.condition) : '🌥️';
   const clothingRecommendation = recommendations.find((recommendation) => recommendation.category === 'clothing');
+  const hydrationRecommendation = recommendations.find((recommendation) => recommendation.category === 'hydration');
+  const heatRecommendation = recommendations.find((recommendation) => recommendation.id === 'heat-caution-01');
+  const heatRisk = recommendationAnalysis?.risks && typeof recommendationAnalysis.risks === 'object'
+    ? (recommendationAnalysis.risks as { heat?: unknown }).heat
+    : undefined;
   const generalRecommendation = recommendations.find((recommendation) => recommendation.category !== 'clothing');
 
   const today = new Date().toLocaleDateString('en-GB', {
@@ -310,12 +323,11 @@ export function HomeScreen() {
         severity="warning"
       />
 
-      {/* [MOCK] Hydration recommendation */}
-      <InfoCard
-        icon="🥤"
-        title="Hydration"
-        description="Stay well hydrated. High humidity and temperature may increase fluid loss."
-        severity="success"
+      <HydrationHeatWarningCard
+        recommendation={hydrationRecommendation}
+        heatRecommendation={heatRecommendation}
+        weather={weather}
+        heatRisk={typeof heatRisk === 'string' ? heatRisk : null}
       />
 
       {/* ------------------------------------------------------------------ */}
