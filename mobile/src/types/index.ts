@@ -110,8 +110,15 @@ export interface Recommendation {
   id: string;
   category: RecommendationCategory;
   title: string;
-  description: string;
-  severity: RecommendationSeverity;
+  /** Canonical API payload field used by the backend recommendation engine. */
+  message: string;
+  /** Legacy compatibility for earlier mock/local contract usage. */
+  description?: string;
+  reason?: string;
+  priority?: string;
+  risk_level?: string;
+  severity?: RecommendationSeverity;
+  factors?: Array<Record<string, unknown>>;
   /** Optional numeric score 0-100, e.g. Travel Safety Score */
   score?: number;
   /** Optional icon name (to be used with an icon library in future days) */

@@ -32,6 +32,7 @@ import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommen
 import { getCurrentLocation } from '../services/locationService';
 import type { ForecastData, LocationData, RecommendationResponse, WeatherData } from '../types';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { findSmartAdviceCards } from '../utils/smartAdvice';
 
 
 // ---------------------------------------------------------------------------
@@ -197,13 +198,15 @@ export function HomeScreen() {
   }, [forecast, location, weather]);
 
   const weatherIcon = weather ? conditionIcon(weather.condition) : '🌥️';
-  const clothingRecommendation = recommendations.find((recommendation) => recommendation.category === 'clothing');
-  const hydrationRecommendation = recommendations.find((recommendation) => recommendation.category === 'hydration');
+  const smartAdvice = findSmartAdviceCards(recommendations);
+  const clothingRecommendation = smartAdvice.clothing ?? null;
+  const umbrellaRecommendation = smartAdvice.umbrella ?? null;
+  const hydrationRecommendation = smartAdvice.hydration ?? null;
   const heatRecommendation = recommendations.find((recommendation) => recommendation.id === 'heat-caution-01');
   const heatRisk = recommendationAnalysis?.risks && typeof recommendationAnalysis.risks === 'object'
     ? (recommendationAnalysis.risks as { heat?: unknown }).heat
     : undefined;
-  const generalRecommendation = recommendations.find((recommendation) => recommendation.category !== 'clothing');
+  const generalRecommendation = smartAdvice.general ?? smartAdvice.primarySummary ?? null;
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -304,9 +307,9 @@ export function HomeScreen() {
       {generalRecommendation ? (
         <InfoCard
           icon="🤖"
-          title="AI Weather Advice"
-          description={generalRecommendation.message}
-          severity="info"
+          title={generalRecommendation.title || 'AI Weather Advice'}
+          description={generalRecommendation.message || generalRecommendation.description || 'Weather guidance is available.'}
+          severity={generalRecommendation.severity ?? 'info'}
         />
       ) : null}
 
@@ -315,13 +318,21 @@ export function HomeScreen() {
         weather={weather}
       />
 
-      {/* [MOCK] Umbrella recommendation */}
-      <InfoCard
-        icon="☂️"
-        title="Umbrella"
-        description="Consider carrying an umbrella — there's a 40% chance of rain this afternoon."
-        severity="warning"
-      />
+      {umbrellaRecommendation ? (
+        <InfoCard
+          icon="☂️"
+          title={umbrellaRecommendation.title || 'Umbrella'}
+          description={umbrellaRecommendation.message || umbrellaRecommendation.description || 'Carry an umbrella if you are heading out.'}
+          severity={umbrellaRecommendation.severity ?? 'info'}
+        />
+      ) : weather && weather.rainProbability >= 40 ? (
+        <InfoCard
+          icon="☂️"
+          title="Umbrella"
+          description={`Consider carrying an umbrella — there's a ${weather.rainProbability}% chance of rain this afternoon.`}
+          severity="warning"
+        />
+      ) : null}
 
       <HydrationHeatWarningCard
         recommendation={hydrationRecommendation}

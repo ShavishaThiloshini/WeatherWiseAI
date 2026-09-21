@@ -4,10 +4,10 @@ import { BORDER_RADIUS, COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '../constant
 import type { RecommendationSeverity, WeatherData } from '../types';
 
 interface HydrationRecommendation {
-  title: string;
-  message: string;
+  title?: string;
+  message?: string;
   reason?: string;
-  severity: RecommendationSeverity;
+  severity?: RecommendationSeverity;
   riskLevel?: string;
 }
 
