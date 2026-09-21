@@ -4,6 +4,7 @@
  */
 
 import type { WeatherData, ForecastData, RecommendationResponse } from '../types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch } from './api';
 export { toRecommendationForecast } from './forecastMapping';
 import { normalizeCurrentWeather } from './weatherNormalization';
@@ -29,6 +30,28 @@ export const MOCK_FORECAST: ForecastData = {
 };
 
 const WEATHER_API_URL = 'https://api.open-meteo.com/v1/forecast';
+const CACHE_PREFIX = 'weatherwise.weather.v1';
+
+function cacheKey(kind: 'current' | 'forecast', latitude: number, longitude: number): string {
+  return `${CACHE_PREFIX}.${kind}.${latitude.toFixed(4)}.${longitude.toFixed(4)}`;
+}
+
+async function readCached<T>(key: string): Promise<T | null> {
+  try {
+    const value = await AsyncStorage.getItem(key);
+    return value ? JSON.parse(value) as T : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeCached<T>(key: string, value: T): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Cache failure must never prevent live weather from rendering.
+  }
+}
 
 
 const WEATHER_CONDITIONS: WeatherData['condition'][] = [
@@ -54,11 +77,18 @@ export async function getCurrentWeather(
     forecast_days: '1',
     timezone: 'auto',
   });
-  const response = await fetch(`${WEATHER_API_URL}?${query.toString()}`);
-  if (!response.ok) throw new Error(`Weather service returned ${response.status}.`);
-
-  const data = (await response.json()) as OpenMeteoCurrentResponse;
-  return normalizeCurrentWeather(data);
+  try {
+    const response = await fetch(`${WEATHER_API_URL}?${query.toString()}`);
+    if (!response.ok) throw new Error(`Weather service returned ${response.status}.`);
+    const data = (await response.json()) as OpenMeteoCurrentResponse;
+    const weather = normalizeCurrentWeather(data);
+    await writeCached(cacheKey('current', latitude, longitude), weather);
+    return weather;
+  } catch (error) {
+    const cached = await readCached<WeatherData>(cacheKey('current', latitude, longitude));
+    if (cached) return cached;
+    throw error;
+  }
 }
 
 /**
@@ -69,31 +99,39 @@ export async function getForecast(
   latitude: number,
   longitude: number,
 ): Promise<ForecastData> {
-  const response = await apiFetch<{
-    hourly?: Array<Record<string, unknown>>;
-    daily?: Array<Record<string, unknown>>;
-  }>(`/weather/forecast?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`);
+  try {
+    const response = await apiFetch<{
+      hourly?: Array<Record<string, unknown>>;
+      daily?: Array<Record<string, unknown>>;
+    }>(`/weather/forecast?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`);
 
-  return {
-    hourly: (response.hourly || []).map((hour) => ({
-      time: String(hour.time || ''),
-      temperatureC: Number(hour.temperatureC ?? 0),
-      condition: conditionFromProvider(hour.condition),
-      rainProbability: Number(hour.rainProbability ?? 0),
-      feelsLikeC: hour.feelsLike == null ? undefined : Number(hour.feelsLike),
-      humidity: hour.humidity == null ? undefined : Number(hour.humidity),
-      uvIndex: hour.uvLevel == null ? undefined : Number(hour.uvLevel),
-    })),
-    daily: (response.daily || []).map((day) => ({
-      date: String(day.date || ''),
-      maxTempC: Number(day.maxTempC ?? 0),
-      minTempC: Number(day.minTempC ?? 0),
-      condition: conditionFromProvider(day.condition),
-      conditionLabel: String(day.conditionLabel || 'Unknown'),
-      rainProbability: Number(day.rainProbability ?? 0),
-      uvIndex: Number(day.uvIndex ?? 0),
-    })),
-  };
+    const forecast = {
+      hourly: (response.hourly || []).map((hour) => ({
+        time: String(hour.time || ''),
+        temperatureC: Number(hour.temperatureC ?? 0),
+        condition: conditionFromProvider(hour.condition),
+        rainProbability: Number(hour.rainProbability ?? 0),
+        feelsLikeC: hour.feelsLike == null ? undefined : Number(hour.feelsLike),
+        humidity: hour.humidity == null ? undefined : Number(hour.humidity),
+        uvIndex: hour.uvLevel == null ? undefined : Number(hour.uvLevel),
+      })),
+      daily: (response.daily || []).map((day) => ({
+        date: String(day.date || ''),
+        maxTempC: Number(day.maxTempC ?? 0),
+        minTempC: Number(day.minTempC ?? 0),
+        condition: conditionFromProvider(day.condition),
+        conditionLabel: String(day.conditionLabel || 'Unknown'),
+        rainProbability: Number(day.rainProbability ?? 0),
+        uvIndex: Number(day.uvIndex ?? 0),
+      })),
+    };
+    await writeCached(cacheKey('forecast', latitude, longitude), forecast);
+    return forecast;
+  } catch (error) {
+    const cached = await readCached<ForecastData>(cacheKey('forecast', latitude, longitude));
+    if (cached) return cached;
+    throw error;
+  }
 }
 
 // ---------------------------------------------------------------------------

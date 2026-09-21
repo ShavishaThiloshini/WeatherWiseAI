@@ -3,9 +3,11 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const { findUserByEmail, createUser } = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { authRateLimit, requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
+
+router.use(authRateLimit);
 
 function createToken(user) {
   return jwt.sign(
