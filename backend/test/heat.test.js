@@ -3,13 +3,27 @@ const assert = require('node:assert/strict');
 const app = require('../src/app');
 const { resetMemoryStore } = require('../src/db');
 const { clearWeatherCache } = require('../src/services/weather.service');
+const { effectiveHeatC, heatAlertForRisk, heatRiskLevel } = require('../src/services/heat-threshold.service');
+
+test('heat threshold service applies effective temperature and boundaries', () => {
+  assert.equal(effectiveHeatC(34, 36), 36);
+  assert.equal(heatRiskLevel({ temperature: 35, feelsLike: 30, humidity: 50 }), 'HIGH');
+  assert.equal(heatRiskLevel({ temperature: 36.9, humidity: 50 }), 'HIGH');
+  assert.equal(heatRiskLevel({ temperature: 37, humidity: 50 }), 'CRITICAL');
+  assert.equal(heatRiskLevel({ temperature: 33, humidity: 80 }), 'HIGH');
+  assert.equal(heatRiskLevel({ temperature: 25, humidity: 80 }), 'SAFE');
+  assert.equal(heatRiskLevel({ temperature: null, feelsLike: null }), 'SAFE');
+  assert.equal(heatAlertForRisk('HIGH', 35, 35, 50).severity, 'warning');
+  assert.equal(heatAlertForRisk('CRITICAL', 37, 37, 50).severity, 'danger');
+  assert.equal(heatAlertForRisk('MODERATE', 32, 32, 50), null);
+});
 
 const providerPayload = {
   timezone: 'Asia/Colombo',
   current: {
     time: '2026-09-13T08:00',
     temperature_2m: 31.5,
-    apparent_temperature: 34.2,
+    apparent_temperature: 35.2,
     relative_humidity_2m: 72,
     wind_speed_10m: 18,
     wind_direction_10m: 135,
@@ -19,7 +33,7 @@ const providerPayload = {
   hourly: {
     time: ['2026-09-13T07:00', '2026-09-13T08:00'],
     temperature_2m: [30, 31.5],
-    apparent_temperature: [32.1, 34.2],
+    apparent_temperature: [32.1, 35.2],
     relative_humidity_2m: [80, 72],
     wind_speed_10m: [15, 18],
     wind_direction_10m: [120, 135],
@@ -88,11 +102,15 @@ test('heat endpoint returns valid categorizations', async () => {
     assert.equal(result.status, 200);
     assert.equal(result.payload.location.latitude, 6.9271);
     assert.equal(result.payload.current.temperature_c, 31.5);
-    assert.equal(result.payload.current.feels_like_c, 34.2);
+    assert.equal(result.payload.current.feels_like_c, 35.2);
     assert.equal(result.payload.current.uv_index, 8);
     
-    // Math.max(31.5, 34.2) = 34.2 => Hot (<37)
+    // Math.max(31.5, 35.2) = 35.2 => Hot (<37), with a high-heat warning.
     assert.equal(result.payload.analysis.heat_category, 'Hot');
+    assert.equal(result.payload.analysis.heat_risk, 'HIGH');
+    assert.equal(result.payload.analysis.heat_warning, true);
+    assert.equal(result.payload.analysis.heat_alert, false);
+    assert.equal(result.payload.alerts[0].severity, 'warning');
     
     // UV 8 => Very High
     assert.equal(result.payload.analysis.uv_category, 'Very High');
@@ -130,6 +148,8 @@ test('heat endpoint categorizes Normal and Low UV correctly', async () => {
 
     assert.equal(result.status, 200);
     assert.equal(result.payload.analysis.heat_category, 'Normal');
+    assert.equal(result.payload.analysis.heat_risk, 'SAFE');
+    assert.equal(result.payload.alerts.length, 0);
     assert.equal(result.payload.analysis.uv_category, 'Low');
     assert.equal(result.payload.analysis.hydration_indicator, 'Standard Hydration');
   } finally {
@@ -165,6 +185,10 @@ test('heat endpoint categorizes Extreme heat and Extreme UV correctly', async ()
 
     assert.equal(result.status, 200);
     assert.equal(result.payload.analysis.heat_category, 'Extreme Heat');
+    assert.equal(result.payload.analysis.heat_risk, 'CRITICAL');
+    assert.equal(result.payload.analysis.heat_warning, true);
+    assert.equal(result.payload.analysis.heat_alert, true);
+    assert.equal(result.payload.alerts[0].severity, 'danger');
     assert.equal(result.payload.analysis.uv_category, 'Extreme');
   } finally {
     global.fetch = originalFetch;
@@ -201,6 +225,8 @@ test('heat endpoint handles missing UV and temperature gracefully', async () => 
     assert.equal(result.payload.current.temperature_c, null);
     assert.equal(result.payload.current.uv_index, null);
     assert.equal(result.payload.analysis.heat_category, null);
+    assert.equal(result.payload.analysis.heat_risk, 'SAFE');
+    assert.equal(result.payload.alerts.length, 0);
     assert.equal(result.payload.analysis.uv_category, null);
   } finally {
     global.fetch = originalFetch;
