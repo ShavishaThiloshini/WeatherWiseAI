@@ -183,3 +183,36 @@ export interface ApiResponse<T> {
   error: string | null;
   isLoading: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Heat Warning Data
+// ---------------------------------------------------------------------------
+
+export interface HeatAnalysis {
+  heat_category: 'Normal' | 'Warm' | 'Hot' | 'Very Hot' | 'Extreme Heat' | null;
+  heat_risk: 'SAFE' | 'MODERATE' | 'HIGH' | 'CRITICAL' | null;
+  heat_warning: boolean;
+  heat_alert: boolean;
+  uv_category: 'Low' | 'Moderate' | 'High' | 'Very High' | 'Extreme' | null;
+  hydration_indicator: string;
+}
+
+export interface HeatData {
+  location: {
+    latitude: number;
+    longitude: number;
+  };
+  current: {
+    temperature_c: number | null;
+    feels_like_c: number | null;
+    uv_index: number | null;
+    humidity_percent: number | null;
+    condition: string | null;
+    conditionLabel: string | null;
+    observed_at: string | null;
+  };
+  analysis: HeatAnalysis;
+  alerts: Array<Record<string, unknown>>;
+  timezone: string | null;
+  cached?: boolean;
+}
