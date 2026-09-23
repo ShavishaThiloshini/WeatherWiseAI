@@ -28,8 +28,8 @@ async function fetchOpenMeteo(latitude, longitude, fetchImpl = global.fetch) {
   const query = new URLSearchParams({
     latitude: String(latitude),
     longitude: String(longitude),
-    current: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,uv_index',
-    hourly: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation_probability,visibility,weather_code,uv_index',
+    current: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,uv_index,precipitation',
+    hourly: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation_probability,precipitation,visibility,weather_code,uv_index',
     daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,uv_index_max',
     forecast_days: '7',
     timezone: 'auto',
@@ -71,6 +71,7 @@ function normalizeProviderPayload(payload) {
     windDirection: valueAt(payload.hourly.wind_direction_10m, index),
     uvLevel: valueAt(payload.hourly.uv_index, index),
     rainProbability: valueAt(payload.hourly.precipitation_probability, index, 0),
+    precipitation: valueAt(payload.hourly.precipitation, index, 0),
     visibilityKm: valueAt(payload.hourly.visibility, index) === null
       ? null
       : valueAt(payload.hourly.visibility, index, null) / 1000,
@@ -93,6 +94,7 @@ function normalizeProviderPayload(payload) {
       wind_direction_degrees: current.wind_direction_10m,
       uv_index: current.uv_index,
       rain_probability_percent: valueAt(payload.hourly.precipitation_probability, currentHour, 0),
+      precipitation_mm: current.precipitation,
       visibility_km: valueAt(payload.hourly.visibility, currentHour, null) === null
         ? null
         : valueAt(payload.hourly.visibility, currentHour, null) / 1000,

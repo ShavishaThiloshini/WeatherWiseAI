@@ -76,6 +76,7 @@ test('provider payload is normalized into current, hourly, and daily weather dat
     wind_direction_degrees: 135,
     uv_index: 8,
     rain_probability_percent: 75,
+    precipitation_mm: undefined,
     visibility_km: 8,
     condition: 'partly-cloudy',
     conditionLabel: 'Partly Cloudy',

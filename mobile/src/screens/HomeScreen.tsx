@@ -17,7 +17,8 @@
 
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { SectionHeader } from '../components/SectionHeader';
@@ -27,13 +28,14 @@ import { InfoCard } from '../components/InfoCard';
 import { ActivityRecommendationCard } from '../components/ActivityRecommendationCard';
 import { HydrationHeatWarningCard } from '../components/HydrationHeatWarningCard';
 import { HeavyRainAlertCard } from '../components/HeavyRainAlertCard';
+import { HeatWarningCard } from '../components/HeatWarningCard';
 import type { ActivityRecommendation } from '../components/ActivityRecommendationCard';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
-import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommendationForecast } from '../services/weatherService';
+import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommendationForecast, getHeatWarningData } from '../services/weatherService';
 import { getCurrentLocation } from '../services/locationService';
-import type { ForecastData, LocationData, RecommendationResponse, WeatherData } from '../types';
-import type { RootStackParamList } from '../navigation/RootNavigator';
-import { findSmartAdviceCards } from '../utils/smartAdvice';
+import type { ForecastData, LocationData, RecommendationResponse, WeatherData, HeatData } from '../types';
+import type { RootStackParamList, RootTabParamList } from '../navigation/RootNavigator';
+import { buildFallbackSmartAdviceCards, findSmartAdviceCards } from '../utils/smartAdvice';
 
 
 // ---------------------------------------------------------------------------
@@ -123,7 +125,10 @@ function buildActivityRecommendations(weather: WeatherData | null): ActivityReco
 }
 
 export function HomeScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<CompositeNavigationProp<
+    BottomTabNavigationProp<RootTabParamList, 'Home'>,
+    NativeStackNavigationProp<RootStackParamList>
+  >>();
   const [location, setLocation] = React.useState<LocationData | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
   const [weather, setWeather] = React.useState<WeatherData | null>(null);
@@ -132,6 +137,9 @@ export function HomeScreen() {
   const [isWeatherLoading, setIsWeatherLoading] = React.useState(false);
   const [recommendations, setRecommendations] = React.useState<RecommendationResponse['recommendations']>([]);
   const [recommendationAnalysis, setRecommendationAnalysis] = React.useState<RecommendationResponse['analysis'] | null>(null);
+  const [heatData, setHeatData] = React.useState<HeatData | null>(null);
+  const [heatLoading, setHeatLoading] = React.useState(false);
+  const [heatError, setHeatError] = React.useState<string | null>(null);
 
   const loadLocation = React.useCallback(async () => {
     setLocationError(null);
@@ -163,9 +171,25 @@ export function HomeScreen() {
     }
   }, []);
 
+  const loadHeatData = React.useCallback(async (nextLocation: LocationData) => {
+    setHeatLoading(true);
+    setHeatError(null);
+    try {
+      const data = await getHeatWarningData(nextLocation.latitude, nextLocation.longitude);
+      setHeatData(data);
+    } catch (error) {
+      setHeatError(error instanceof Error ? error.message : 'Unable to load heat data.');
+    } finally {
+      setHeatLoading(false);
+    }
+  }, []);
+
   React.useEffect(() => {
-    if (location) void loadWeather(location);
-  }, [location, loadWeather]);
+    if (location) {
+      void loadWeather(location);
+      void loadHeatData(location);
+    }
+  }, [location, loadWeather, loadHeatData]);
 
   React.useEffect(() => {
     if (!location || !weather) return;
@@ -193,8 +217,15 @@ export function HomeScreen() {
         setRecommendationAnalysis(response.analysis);
       })
       .catch(() => {
-        setRecommendations([]);
-        setRecommendationAnalysis(null);
+        const fallback = buildFallbackSmartAdviceCards(weather);
+        setRecommendations(fallback);
+        setRecommendationAnalysis({
+          risks: {
+            general: 'fallback',
+            heat: weather && (weather.temperatureC >= 32 || weather.humidity >= 80 || weather.uvIndex >= 8) ? 'high' : 'low',
+          },
+          summary: 'Local recommendation service unavailable, showing offline fallback guidance.',
+        });
       });
   }, [forecast, location, weather]);
 
@@ -375,6 +406,14 @@ export function HomeScreen() {
         weather={weather}
         forecast={forecast}
         onPress={() => navigation.navigate('Forecast')}
+      />
+      <HeatWarningCard 
+        loading={heatLoading}
+        error={heatError}
+        heatData={heatData}
+        onRetry={() => {
+          if (location) void loadHeatData(location);
+        }}
       />
     </ScreenContainer>
   );

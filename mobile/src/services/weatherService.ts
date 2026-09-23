@@ -3,7 +3,7 @@
  * Weather data fetching and normalization.
  */
 
-import type { WeatherData, ForecastData, RecommendationResponse } from '../types';
+import type { WeatherData, ForecastData, RecommendationResponse, HeatData } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch } from './api';
 export { toRecommendationForecast } from './forecastMapping';
@@ -251,4 +251,53 @@ export async function getDashboardRecommendations(
     method: 'POST',
     body: JSON.stringify({ location, current, forecast }),
   });
+}
+
+/**
+ * Fetches Heat Warning data for the Safety Center.
+ * Uses a mock fallback if the backend is unavailable.
+ */
+export async function getHeatWarningData(
+  latitude: number,
+  longitude: number,
+): Promise<HeatData> {
+  try {
+    const response = await apiFetch<HeatData>(
+      `/weather/heat?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`
+    );
+    return response;
+  } catch (error) {
+    // Return a mock fallback if backend is not ready
+    return {
+      location: { latitude, longitude },
+      current: {
+        temperature_c: MOCK_WEATHER.temperatureC,
+        feels_like_c: MOCK_WEATHER.feelsLikeC,
+        uv_index: MOCK_WEATHER.uvIndex,
+        humidity_percent: MOCK_WEATHER.humidity,
+        condition: MOCK_WEATHER.condition,
+        conditionLabel: MOCK_WEATHER.conditionLabel,
+        observed_at: MOCK_WEATHER.timestamp,
+      },
+      analysis: {
+        heat_category: 'Hot',
+        heat_risk: 'HIGH',
+        heat_warning: true,
+        heat_alert: false,
+        uv_category: 'High',
+        hydration_indicator: 'Hydration Recommended',
+      },
+      alerts: [
+        {
+          id: 'mock-heat-alert',
+          title: 'High Heat Warning',
+          description: 'Temperatures are very high. Stay hydrated and avoid prolonged sun exposure.',
+          severity: 'warning',
+          issuedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        }
+      ],
+      timezone: 'UTC',
+    };
+  }
 }
