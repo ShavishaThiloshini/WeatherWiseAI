@@ -1,4 +1,5 @@
 const { getCurrentWeather } = require('./weather.service');
+const { heatAlertForRisk, heatRiskLevel } = require('./heat-threshold.service');
 
 function categorizeUV(uvIndex) {
   if (uvIndex === null || uvIndex === undefined) return null;
@@ -12,7 +13,12 @@ function categorizeUV(uvIndex) {
 
 function categorizeHeat(temperature, feelsLike) {
   if (temperature === null || temperature === undefined) return null;
-  const temp = Number(feelsLike !== null && feelsLike !== undefined ? Math.max(temperature, feelsLike) : temperature);
+  const values = [temperature, feelsLike]
+    .filter((value) => value !== null && value !== undefined)
+    .map(Number)
+    .filter(Number.isFinite);
+  if (!values.length) return null;
+  const temp = Math.max(...values);
   
   if (temp < 26) return 'Normal';
   if (temp < 32) return 'Warm';
@@ -30,6 +36,8 @@ async function getHeatAndUVData(latitude, longitude) {
   const uvIndex = current.uv_index;
 
   const heatCategory = categorizeHeat(temperature, feelsLike);
+  const heatRisk = heatRiskLevel({ temperature, feelsLike, humidity: current.humidity_percent });
+  const heatAlert = heatAlertForRisk(heatRisk, temperature, feelsLike, current.humidity_percent);
   const uvCategory = categorizeUV(uvIndex);
 
   return {
@@ -48,9 +56,13 @@ async function getHeatAndUVData(latitude, longitude) {
     },
     analysis: {
       heat_category: heatCategory,
+      heat_risk: heatRisk,
+      heat_warning: heatRisk === 'HIGH' || heatRisk === 'CRITICAL',
+      heat_alert: heatRisk === 'CRITICAL',
       uv_category: uvCategory,
       hydration_indicator: heatCategory && heatCategory !== 'Normal' ? 'Hydration Recommended' : 'Standard Hydration',
     },
+    alerts: heatAlert ? [heatAlert] : [],
     timezone: weather.timezone,
     cached: weather.cached,
   };
@@ -60,4 +72,5 @@ module.exports = {
   getHeatAndUVData,
   categorizeUV,
   categorizeHeat,
+  heatRiskLevel,
 };

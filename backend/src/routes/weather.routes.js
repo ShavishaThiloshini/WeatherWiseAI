@@ -78,4 +78,15 @@ router.get('/activity', async (req, res, next) => {
   }
 });
 
+router.get('/rain-alert', async (req, res, next) => {
+  try {
+    validateCoordinates(req.query.lat, req.query.lon);
+    const { getRainAlertData } = require('../services/rain.service');
+    const rainData = await getRainAlertData(req.query.lat, req.query.lon);
+    return res.json(rainData);
+  } catch (error) {
+    return next(error);
+  }
+});
+
 module.exports = router;
