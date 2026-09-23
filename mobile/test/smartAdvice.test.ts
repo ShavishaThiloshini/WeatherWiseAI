@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { findSmartAdviceCards } from '../src/utils/smartAdvice.ts';
+import { buildFallbackSmartAdviceCards, findSmartAdviceCards } from '../src/utils/smartAdvice.ts';
 
 test('smart advice picks category-based cards and keeps the general summary for non-primary items', () => {
   const cards = findSmartAdviceCards([
@@ -18,4 +18,25 @@ test('smart advice picks category-based cards and keeps the general summary for 
   assert.equal(cards.hydration?.id, 'hydration-01');
   assert.equal(cards.general?.id, 'general-01');
   assert.equal(cards.primarySummary?.title, 'Plan around the heat');
+});
+
+test('fallback advice still renders category cards when the dashboard service is unavailable', () => {
+  const fallback = buildFallbackSmartAdviceCards({
+    temperatureC: 33,
+    feelsLikeC: 36,
+    condition: 'sunny',
+    conditionLabel: 'Sunny',
+    humidity: 82,
+    windSpeedKmh: 14,
+    windDirection: 'SE',
+    uvIndex: 9,
+    rainProbability: 68,
+    visibilityKm: 10,
+    timestamp: new Date().toISOString(),
+  });
+
+  assert.equal(fallback[0]?.category, 'clothing');
+  assert.equal(fallback[1]?.category, 'umbrella');
+  assert.equal(fallback[2]?.category, 'hydration');
+  assert.ok(fallback.some((entry) => entry.category === 'general') === false);
 });

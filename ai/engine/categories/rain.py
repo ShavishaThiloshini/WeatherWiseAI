@@ -21,22 +21,35 @@ def classify_rain_intensity(intensity: str | None) -> str | None:
     return None
 
 
-def combined_rain_category(
+def rain_risk_classification(
     probability: float | None,
     intensity: str | None,
     condition: str | None,
-) -> str | None:
+) -> str:
+    """Return the normalized rain risk band used across the recommendation engine."""
     condition_text = (condition or "").lower()
-    if any(token in condition_text for token in ("heavy_rain", "torrential")):
+    if "torrential" in condition_text:
+        return "extreme_rain"
+    if "heavy_rain" in condition_text:
         return "heavy_rain"
 
     intensity_label = classify_rain_intensity(intensity)
-    if intensity_label in {"heavy", "extreme"}:
-        return "extreme_rain" if intensity_label == "extreme" else "heavy_rain"
+    if intensity_label == "extreme":
+        return "extreme_rain"
+    if intensity_label == "heavy":
+        return "heavy_rain"
     if intensity_label == "moderate":
         return "moderate_rain"
     if intensity_label == "light":
         return "light_rain"
     if "rain" in condition_text:
         return classify_rain_probability(probability) or "moderate_rain"
-    return classify_rain_probability(probability)
+    return classify_rain_probability(probability) or "no_rain"
+
+
+def combined_rain_category(
+    probability: float | None,
+    intensity: str | None,
+    condition: str | None,
+) -> str | None:
+    return rain_risk_classification(probability, intensity, condition)

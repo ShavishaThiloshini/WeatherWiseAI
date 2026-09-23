@@ -32,7 +32,7 @@ import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommen
 import { getCurrentLocation } from '../services/locationService';
 import type { ForecastData, LocationData, RecommendationResponse, WeatherData } from '../types';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { findSmartAdviceCards } from '../utils/smartAdvice';
+import { buildFallbackSmartAdviceCards, findSmartAdviceCards } from '../utils/smartAdvice';
 
 
 // ---------------------------------------------------------------------------
@@ -192,8 +192,15 @@ export function HomeScreen() {
         setRecommendationAnalysis(response.analysis);
       })
       .catch(() => {
-        setRecommendations([]);
-        setRecommendationAnalysis(null);
+        const fallback = buildFallbackSmartAdviceCards(weather);
+        setRecommendations(fallback);
+        setRecommendationAnalysis({
+          risks: {
+            general: 'fallback',
+            heat: weather && (weather.temperatureC >= 32 || weather.humidity >= 80 || weather.uvIndex >= 8) ? 'high' : 'low',
+          },
+          summary: 'Local recommendation service unavailable, showing offline fallback guidance.',
+        });
       });
   }, [forecast, location, weather]);
 
