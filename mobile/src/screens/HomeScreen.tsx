@@ -26,6 +26,7 @@ import { ClothingRecommendationCard } from '../components/ClothingRecommendation
 import { InfoCard } from '../components/InfoCard';
 import { ActivityRecommendationCard } from '../components/ActivityRecommendationCard';
 import { HydrationHeatWarningCard } from '../components/HydrationHeatWarningCard';
+import { HeavyRainAlertCard } from '../components/HeavyRainAlertCard';
 import type { ActivityRecommendation } from '../components/ActivityRecommendationCard';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommendationForecast } from '../services/weatherService';
@@ -370,10 +371,11 @@ export function HomeScreen() {
       {/* Severe weather alerts                                                */}
       {/* ------------------------------------------------------------------ */}
       <SectionHeader title="Severe Weather Alerts" />
-      <View style={styles.noAlertBanner}>
-        <Text style={styles.noAlertIcon}>✅</Text>
-        <Text style={styles.noAlertText}>No active severe weather alerts for your area.</Text>
-      </View>
+      <HeavyRainAlertCard
+        weather={weather}
+        forecast={forecast}
+        onPress={() => navigation.navigate('Forecast')}
+      />
     </ScreenContainer>
   );
 }
@@ -489,25 +491,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 
-  // No-alert banner
-  noAlertBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.successLight,
-    borderRadius: BORDER_RADIUS.m,
-    padding: SPACING.m,
-    gap: SPACING.s,
-    marginBottom: SPACING.s,
-  },
-  noAlertIcon: {
-    fontSize: 20,
-  },
-  noAlertText: {
-    flex: 1,
-    fontSize: TYPOGRAPHY.fontSize.s,
-    color: COLORS.success,
-    fontWeight: TYPOGRAPHY.fontWeight.medium,
-  },
   loadingTitle: {
     fontSize: TYPOGRAPHY.fontSize.l,
     fontWeight: TYPOGRAPHY.fontWeight.semiBold,
