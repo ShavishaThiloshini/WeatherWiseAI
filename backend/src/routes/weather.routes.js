@@ -89,4 +89,15 @@ router.get('/rain-alert', async (req, res, next) => {
   }
 });
 
+router.get('/severe-weather', async (req, res, next) => {
+  try {
+    validateCoordinates(req.query.lat, req.query.lon);
+    const { getSevereWeatherData } = require('../services/severe-weather.service');
+    const severeWeather = await getSevereWeatherData(req.query.lat, req.query.lon);
+    return res.json(severeWeather);
+  } catch (error) {
+    return next(error);
+  }
+});
+
 module.exports = router;
