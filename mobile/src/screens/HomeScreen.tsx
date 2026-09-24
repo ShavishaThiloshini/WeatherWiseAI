@@ -29,11 +29,12 @@ import { ActivityRecommendationCard } from '../components/ActivityRecommendation
 import { HydrationHeatWarningCard } from '../components/HydrationHeatWarningCard';
 import { HeavyRainAlertCard } from '../components/HeavyRainAlertCard';
 import { HeatWarningCard } from '../components/HeatWarningCard';
+import { SevereWeatherAlerts } from '../components/SevereWeatherAlerts';
 import type { ActivityRecommendation } from '../components/ActivityRecommendationCard';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
-import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommendationForecast, getHeatWarningData } from '../services/weatherService';
+import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommendationForecast, getHeatWarningData, getSevereWeatherAlerts } from '../services/weatherService';
 import { getCurrentLocation } from '../services/locationService';
-import type { ForecastData, LocationData, RecommendationResponse, WeatherData, HeatData } from '../types';
+import type { ForecastData, LocationData, RecommendationResponse, WeatherData, HeatData, SevereWeatherData } from '../types';
 import type { RootStackParamList, RootTabParamList } from '../navigation/RootNavigator';
 import { buildFallbackSmartAdviceCards, findSmartAdviceCards } from '../utils/smartAdvice';
 
@@ -140,6 +141,9 @@ export function HomeScreen() {
   const [heatData, setHeatData] = React.useState<HeatData | null>(null);
   const [heatLoading, setHeatLoading] = React.useState(false);
   const [heatError, setHeatError] = React.useState<string | null>(null);
+  const [severeWeatherData, setSevereWeatherData] = React.useState<SevereWeatherData | null>(null);
+  const [severeWeatherLoading, setSevereWeatherLoading] = React.useState(false);
+  const [severeWeatherError, setSevereWeatherError] = React.useState<string | null>(null);
 
   const loadLocation = React.useCallback(async () => {
     setLocationError(null);
@@ -184,12 +188,26 @@ export function HomeScreen() {
     }
   }, []);
 
+  const loadSevereWeather = React.useCallback(async (nextLocation: LocationData) => {
+    setSevereWeatherLoading(true);
+    setSevereWeatherError(null);
+    try {
+      const data = await getSevereWeatherAlerts(nextLocation.latitude, nextLocation.longitude);
+      setSevereWeatherData(data);
+    } catch (error) {
+      setSevereWeatherError(error instanceof Error ? error.message : 'Unable to load severe weather alerts.');
+    } finally {
+      setSevereWeatherLoading(false);
+    }
+  }, []);
+
   React.useEffect(() => {
     if (location) {
       void loadWeather(location);
       void loadHeatData(location);
+      void loadSevereWeather(location);
     }
-  }, [location, loadWeather, loadHeatData]);
+  }, [location, loadWeather, loadHeatData, loadSevereWeather]);
 
   React.useEffect(() => {
     if (!location || !weather) return;
@@ -402,6 +420,14 @@ export function HomeScreen() {
       {/* Severe weather alerts                                                */}
       {/* ------------------------------------------------------------------ */}
       <SectionHeader title="Severe Weather Alerts" />
+      <SevereWeatherAlerts
+        loading={severeWeatherLoading}
+        error={severeWeatherError}
+        data={severeWeatherData}
+        onRetry={() => {
+          if (location) void loadSevereWeather(location);
+        }}
+      />
       <HeavyRainAlertCard
         weather={weather}
         forecast={forecast}

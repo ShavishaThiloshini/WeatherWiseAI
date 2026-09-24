@@ -174,6 +174,27 @@ export interface WeatherAlert {
   expiresAt: string;
 }
 
+export type SevereWeatherType = 'thunderstorm' | 'strongWind' | 'other';
+
+export interface SevereWeatherAlertData {
+  id: string;
+  type: SevereWeatherType;
+  severity: 'Low' | 'Moderate' | 'High' | 'Critical' | string;
+  title: string;
+  message: string;
+  recommendation?: string;
+  startTime?: string;
+  endTime?: string;
+  expectedOccurrence?: string;
+  windSpeed?: number;
+  windDirection?: string;
+  rainProbability?: number;
+}
+
+export interface SevereWeatherData {
+  alerts: SevereWeatherAlertData[];
+}
+
 // ---------------------------------------------------------------------------
 // API Response wrappers (for service layer)
 // ---------------------------------------------------------------------------

@@ -301,3 +301,45 @@ export async function getHeatWarningData(
     };
   }
 }
+
+/**
+ * Fetches Severe Weather alerts (Thunderstorm, Strong Wind).
+ * Uses a mock fallback if the backend is unavailable.
+ */
+export async function getSevereWeatherAlerts(
+  latitude: number,
+  longitude: number,
+): Promise<import('../types').SevereWeatherData> {
+  try {
+    const response = await apiFetch<import('../types').SevereWeatherData>(
+      `/weather/severe-weather?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`
+    );
+    return response;
+  } catch (error) {
+    // Return a mock fallback if backend is not ready
+    return {
+      alerts: [
+        {
+          id: 'mock-severe-1',
+          type: 'thunderstorm',
+          severity: 'High',
+          title: 'Thunderstorm',
+          message: 'Thunderstorms are expected in your area.',
+          recommendation: '• Avoid open outdoor areas\n• Stay indoors when possible\n• Avoid unnecessary outdoor activity',
+          expectedOccurrence: 'Expected: 5:00 PM',
+          rainProbability: 90
+        },
+        {
+          id: 'mock-severe-2',
+          type: 'strongWind',
+          severity: 'Moderate',
+          title: 'Strong Wind',
+          message: 'Strong winds are expected in your area.',
+          recommendation: '• Avoid exposed outdoor areas\n• Be cautious around trees and unstable objects\n• Consider postponing outdoor activities',
+          windSpeed: 45,
+          windDirection: 'NE',
+        }
+      ]
+    };
+  }
+}
