@@ -20,6 +20,15 @@ def _temperature_advice(temperature: float) -> tuple[str, str]:
     return "Choose very lightweight, breathable clothing and avoid heavy layers.", "very_hot"
 
 
+def _effective_temperature(weather: WeatherSnapshot) -> float:
+    temperatures = [
+        value
+        for value in (weather.temperature_c, weather.feels_like_c)
+        if value is not None
+    ]
+    return min(temperatures)
+
+
 def _rain_is_meaningful(weather: WeatherSnapshot) -> bool:
     probability = weather.rain_probability_percent
     if probability is not None and probability >= RAIN_PROBABILITY_THRESHOLDS["light_max"]:
@@ -31,7 +40,8 @@ def clothing_rules(weather: WeatherSnapshot) -> list[Recommendation]:
     if weather.temperature_c is None:
         return []
 
-    temperature_message, temperature_band = _temperature_advice(weather.temperature_c)
+    effective_temperature = _effective_temperature(weather)
+    temperature_message, temperature_band = _temperature_advice(effective_temperature)
     messages = [temperature_message]
     factors = [factor("temperature_c", weather.temperature_c, "celsius")]
     factors.append(factor("temperature_band", temperature_band))
@@ -46,7 +56,7 @@ def clothing_rules(weather: WeatherSnapshot) -> list[Recommendation]:
         if weather.rain_intensity is not None:
             factors.append(factor("rain_intensity", weather.rain_intensity))
 
-    is_cold = weather.temperature_c < TEMPERATURE_THRESHOLDS["cool_max"]
+    is_cold = effective_temperature < TEMPERATURE_THRESHOLDS["cool_max"]
     if weather.uv_index is not None and weather.uv_index >= UV_THRESHOLDS["high_max"] and not is_cold:
         messages.append("Add sun protection such as a hat, sunglasses, or sunscreen.")
         factors.append(factor("uv_index", weather.uv_index, "index"))

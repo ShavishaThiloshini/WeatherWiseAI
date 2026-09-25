@@ -1,0 +1,7 @@
+{
+  "name": "weatherwise-ai",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix mobile start"
+  }
+}

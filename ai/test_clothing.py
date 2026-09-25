@@ -17,6 +17,21 @@ def test_temperature_bands_produce_clothing_advice() -> None:
     assert "very lightweight" in clothing(WeatherSnapshot(temperature_c=38)).message
 
 
+def test_colder_feels_like_temperature_uses_warmer_clothing_band() -> None:
+    recommendation = clothing(WeatherSnapshot(temperature_c=15, feels_like_c=4))
+
+    assert recommendation is not None
+    assert "coat" in recommendation.message
+    assert any(item["name"] == "feels_like_c" for item in recommendation.factors)
+
+
+def test_cold_feels_like_suppresses_conflicting_sun_protection() -> None:
+    recommendation = clothing(WeatherSnapshot(temperature_c=15, feels_like_c=4, uv_index=11))
+
+    assert recommendation is not None
+    assert "sun protection" not in recommendation.message
+
+
 def test_rain_and_heat_are_combined_in_one_recommendation() -> None:
     recommendation = clothing(
         WeatherSnapshot(
