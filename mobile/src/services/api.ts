@@ -5,16 +5,17 @@
 
 import { Platform } from 'react-native';
 
-const API_BASE_URL = (() => {
+export const API_BASE_URL = (() => {
   if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, '');
   }
 
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:3000/api/v1';
+  if (Platform.OS === 'web') {
+    return 'http://127.0.0.1:3000/api/v1';
   }
 
-  return 'http://127.0.0.1:3000/api/v1';
+  // Native devices need the computer's LAN address; 127.0.0.1 is the device itself.
+  return 'http://172.20.10.2:3000/api/v1';
 })();
 
 const REQUEST_TIMEOUT_MS = 10_000;

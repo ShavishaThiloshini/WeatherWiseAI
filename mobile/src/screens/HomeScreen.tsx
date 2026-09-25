@@ -29,6 +29,7 @@ import { ActivityRecommendationCard } from '../components/ActivityRecommendation
 import { HydrationHeatWarningCard } from '../components/HydrationHeatWarningCard';
 import { HeavyRainAlertCard } from '../components/HeavyRainAlertCard';
 import { HeatWarningCard } from '../components/HeatWarningCard';
+import { ColdWeatherWarningCard } from '../components/ColdWeatherWarningCard';
 import { SevereWeatherAlerts } from '../components/SevereWeatherAlerts';
 import type { ActivityRecommendation } from '../components/ActivityRecommendationCard';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
@@ -390,6 +391,9 @@ export function HomeScreen() {
         weather={weather}
         heatRisk={typeof heatRisk === 'string' ? heatRisk : null}
       />
+
+      <SectionHeader title="Cold Weather" />
+      <ColdWeatherWarningCard weather={weather} forecast={forecast} />
 
       {/* ------------------------------------------------------------------ */}
       {/* Outdoor Activity Recommendations — Day 14                           */}
