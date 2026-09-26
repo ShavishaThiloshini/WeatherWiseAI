@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -16,28 +16,43 @@ import { BORDER_RADIUS, COLORS, SHADOWS, SPACING, TYPOGRAPHY } from '../constant
 import { loginUser, registerUser } from '../services/authService';
 
 export function AuthScreen({ onAuthenticate }: { onAuthenticate: (token: string) => void }) {
+  const [feedback, setFeedback] = useState<{
+    title: string;
+    message: string;
+    kind: 'success' | 'error';
+    secondaryAction?: () => void;
+  } | null>(null);
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
+
+  const closeFeedback = () => {
+    setFeedback(null);
+    if (pendingToken) {
+      onAuthenticate(pendingToken);
+      setPendingToken(null);
+    }
+  };
 
   const handleSubmit = async () => {
     const normalizedEmail = email.trim().toLowerCase();
 
     if (mode === 'register' && !name.trim()) {
-      Alert.alert('Name required', 'Enter your name to create an account.');
+      setFeedback({ title: 'Name required', message: 'Enter your name to create an account.', kind: 'error' });
       return;
     }
 
     if (!normalizedEmail || !normalizedEmail.includes('@')) {
-      Alert.alert('Email required', 'Enter a valid email address.');
+      setFeedback({ title: 'Email required', message: 'Enter a valid email address.', kind: 'error' });
       return;
     }
 
     if (!password || password.length < 6) {
-      Alert.alert('Password too short', 'Your password must be at least 6 characters.');
+      setFeedback({ title: 'Password too short', message: 'Your password must be at least 6 characters.', kind: 'error' });
       return;
     }
 
@@ -47,9 +62,27 @@ export function AuthScreen({ onAuthenticate }: { onAuthenticate: (token: string)
         ? await registerUser(name.trim(), normalizedEmail, password)
         : await loginUser(normalizedEmail, password);
 
-      onAuthenticate(result.token);
+      setPendingToken(result.token);
+      setFeedback({
+        title: mode === 'register' ? 'Registration successful' : 'Login successful',
+        message: mode === 'register'
+          ? 'Your account has been created.'
+          : 'You are now signed in.',
+        kind: 'success',
+      });
     } catch (error) {
-      Alert.alert('Unable to continue', error instanceof Error ? error.message : 'Please try again.');
+      const message = error instanceof Error ? error.message : 'Please try again.';
+      const isExistingAccount = mode === 'register' && /already exists/i.test(message);
+      setFeedback({
+        title: isExistingAccount ? 'Account already exists' : mode === 'login' ? 'Login failed' : 'Registration failed',
+        message: mode === 'login' && /invalid email or password/i.test(message)
+          ? 'Incorrect email or password. Check your details and try again.'
+          : isExistingAccount
+            ? 'This email is already registered. Log in to your account instead.'
+            : message,
+        kind: 'error',
+        secondaryAction: isExistingAccount ? () => setMode('login') : undefined,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -153,6 +186,46 @@ export function AuthScreen({ onAuthenticate }: { onAuthenticate: (token: string)
           </Text>
         </Pressable>
       </KeyboardAvoidingView>
+      <Modal
+        visible={feedback !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={closeFeedback}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.feedbackDialog} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+            <MaterialCommunityIcons
+              name={feedback?.kind === 'success' ? 'check-circle-outline' : 'alert-circle-outline'}
+              size={40}
+              color={feedback?.kind === 'success' ? COLORS.success : COLORS.danger}
+            />
+            <Text style={styles.feedbackTitle}>{feedback?.title}</Text>
+            <Text style={styles.feedbackMessage}>{feedback?.message}</Text>
+            {feedback?.secondaryAction && (
+              <Pressable
+                style={styles.feedbackSecondaryButton}
+                onPress={() => {
+                  const action = feedback?.secondaryAction;
+                  setFeedback(null);
+                  action?.();
+                }}
+                accessibilityRole="button"
+              >
+                <Text style={styles.feedbackSecondaryText}>Go to login</Text>
+              </Pressable>
+            )}
+            <Pressable
+              style={styles.feedbackButton}
+              onPress={closeFeedback}
+              accessibilityRole="button"
+            >
+              <Text style={styles.feedbackButtonText}>
+                {pendingToken ? 'Continue' : 'OK'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -277,5 +350,65 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     marginTop: SPACING.m,
+  },
+  modalBackdrop: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    padding: SPACING.l,
+  },
+  feedbackDialog: {
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 380,
+    padding: SPACING.xl,
+    backgroundColor: COLORS.backgroundCard,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.l,
+  },
+  feedbackTitle: {
+    marginTop: SPACING.m,
+    color: COLORS.textPrimary,
+    fontSize: TYPOGRAPHY.fontSize.l,
+    fontWeight: TYPOGRAPHY.fontWeight.bold,
+    textAlign: 'center',
+  },
+  feedbackMessage: {
+    marginTop: SPACING.s,
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.fontSize.m,
+    lineHeight: TYPOGRAPHY.fontSize.m * 1.5,
+    textAlign: 'center',
+  },
+  feedbackButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    minHeight: 48,
+    marginTop: SPACING.l,
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.m,
+  },
+  feedbackButtonText: {
+    color: COLORS.white,
+    fontSize: TYPOGRAPHY.fontSize.m,
+    fontWeight: TYPOGRAPHY.fontWeight.semiBold,
+  },
+  feedbackSecondaryButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    minHeight: 44,
+    marginTop: SPACING.m,
+    borderColor: COLORS.primary,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.m,
+  },
+  feedbackSecondaryText: {
+    color: COLORS.primaryLight,
+    fontSize: TYPOGRAPHY.fontSize.m,
+    fontWeight: TYPOGRAPHY.fontWeight.semiBold,
   },
 });
