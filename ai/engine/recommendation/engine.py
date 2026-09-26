@@ -9,6 +9,7 @@ from engine.rules.cold import cold_risk_level, cold_rules
 from engine.rules.forecast import forecast_trend_rules
 from engine.rules.heat import heat_risk_level, heat_rules
 from engine.rules.hydration import hydration_rules
+from engine.rules.overall_risk import classify_overall_risk
 from engine.rules.rain import rain_risk_level, rain_rules
 from engine.rules.thunderstorm import thunderstorm_alert, thunderstorm_rules
 from engine.rules.timing import timing_rules
@@ -101,14 +102,21 @@ def run_engine(weather: WeatherSnapshot) -> EngineResult:
     if not resolved:
         resolved = _general(weather)
 
+    sorted_recs = sort_recommendations(resolved)
     activity = activity_suitability(weather)
     alerts = []
     storm_alert = thunderstorm_alert(weather)
     if storm_alert:
         alerts.append(storm_alert)
 
+    # Day 20: overall weather risk classification
+    overall_risk = classify_overall_risk(
+        weather,
+        existing_recommendations=sorted_recs,
+    )
+
     return EngineResult(
-        recommendations=sort_recommendations(resolved),
+        recommendations=sorted_recs,
         alerts=alerts,
         analysis=analysis,
         risks=risks,
@@ -117,6 +125,7 @@ def run_engine(weather: WeatherSnapshot) -> EngineResult:
         summary=_summary(analysis, risks, activity),
         request_id=weather.request_id,
         data_freshness=weather.observed_at,
+        overall_risk=overall_risk,
     )
 
 
@@ -157,6 +166,10 @@ def recommend_from_payload(payload: dict) -> dict:
                 "overall": result.risks.overall,
             },
         },
+        # Day 20: overall_risk block for Safety & Alerts screen / Alerts API
+        "overall_risk": (
+            result.overall_risk.to_api() if result.overall_risk is not None else None
+        ),
         "assistant_context": {
             "summary": result.summary,
             "limitations": result.limitations,
