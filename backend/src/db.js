@@ -6,6 +6,7 @@ const path = require('node:path');
 const memoryStore = {
   users: [],
   locations: [],
+  alerts: [],
 };
 
 let pool;
@@ -40,6 +41,7 @@ async function closeDatabase() {
 function resetMemoryStore() {
   memoryStore.users = [];
   memoryStore.locations = [];
+  memoryStore.alerts = [];
 }
 
 async function findUserByEmail(email) {
@@ -126,6 +128,56 @@ async function deleteLocation(userId, locationId) {
   return true;
 }
 
+async function listAlerts(userId, { locationId, activeOnly = true } = {}) {
+  const database = getPool();
+  if (database) {
+    const conditions = ['l.user_id = ?'];
+    const values = [userId];
+    if (locationId) {
+      conditions.push('a.location_id = ?');
+      values.push(locationId);
+    }
+    if (activeOnly) conditions.push('a.is_active = TRUE');
+    const [rows] = await database.query(`
+      SELECT a.id, a.location_id AS locationId, a.alert_type AS alertType,
+        a.severity, a.title, a.reason, a.valid_from AS validFrom,
+        a.expires_at AS expiresAt, a.is_active AS isActive,
+        a.created_at AS createdAt
+      FROM alerts a
+      INNER JOIN locations l ON l.id = a.location_id
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY FIELD(a.severity, 'high', 'medium', 'low'), a.created_at DESC
+    `, values);
+    return rows;
+  }
+
+  return memoryStore.alerts
+    .filter((alert) => alert.user_id === userId)
+    .filter((alert) => !locationId || alert.location_id === locationId)
+    .filter((alert) => !activeOnly || alert.is_active)
+    .sort((left, right) => {
+      const severityOrder = { high: 0, medium: 1, low: 2 };
+      return (severityOrder[left.severity] - severityOrder[right.severity]) || (new Date(right.created_at) - new Date(left.created_at));
+    })
+    .map((alert) => ({
+      id: alert.id,
+      locationId: alert.location_id,
+      alertType: alert.alert_type,
+      severity: alert.severity,
+      title: alert.title,
+      reason: alert.reason,
+      validFrom: alert.valid_from,
+      expiresAt: alert.expires_at,
+      isActive: alert.is_active,
+      createdAt: alert.created_at,
+    }));
+}
+
+async function findAlertById(userId, alertId) {
+  const alerts = await listAlerts(userId, { activeOnly: false });
+  return alerts.find((alert) => alert.id === alertId) || null;
+}
+
 module.exports = {
   closeDatabase,
   createLocation,
@@ -138,4 +190,6 @@ module.exports = {
   findUserByEmail,
   findUserById,
   createUser,
+  findAlertById,
+  listAlerts,
 };
