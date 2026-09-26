@@ -49,6 +49,8 @@ factors, and indexes for user, location, cache, alert, and conversation reads.
 - `GET /api/v1/weather/activity?lat=&lon=` - outdoor activity scores (walking, running, cycling)
 - `GET/PATCH /api/v1/users/me` - authenticated user profile
 - `GET/PATCH /api/v1/users/preferences` - authenticated user preferences
+- `GET /api/v1/alerts` - authenticated active alerts, optionally filtered by `locationId` or `active=false`
+- `GET /api/v1/alerts/:id` - authenticated alert detail for an owned location
 
 AI/dashboard requests must include either an owned `location_id` or a `location` object,
 plus a `current` weather object. The backend does not invent live provider data; a

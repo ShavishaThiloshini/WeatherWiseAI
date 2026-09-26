@@ -3,6 +3,7 @@ const express = require('express');
 const healthRouter = require('./health.routes');
 const locationRouter = require('./location.routes');
 const weatherRouter = require('./weather.routes');
+const alertsRouter = require('./alerts.routes');
 const { requireAuth } = require('../middleware/auth');
 const { getDashboardRecommendations } = require('../services/recommendation.service');
 
@@ -11,6 +12,7 @@ const router = express.Router();
 router.use('/health', healthRouter);
 router.use('/locations', locationRouter);
 router.use('/weather', weatherRouter);
+router.use('/alerts', alertsRouter);
 
 router.post('/dashboard', requireAuth, async (req, res, next) => {
   try {
