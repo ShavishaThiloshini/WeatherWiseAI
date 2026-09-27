@@ -2,6 +2,12 @@
   "name": "weatherwise-ai",
   "private": true,
   "scripts": {
-    "start": "npm --prefix mobile start"
+    "start": "npm --prefix mobile start",
+    "mobile": "npm --prefix mobile start",
+    "backend": "npm --prefix backend start",
+    "mobile:tunnel": "npm --prefix mobile exec expo start --tunnel",
+    "mobile:web": "npm --prefix mobile exec expo start --web",
+    "mobile:android": "npm --prefix mobile exec expo start --android",
+    "mobile:ios": "npm --prefix mobile exec expo start --ios"
   }
 }

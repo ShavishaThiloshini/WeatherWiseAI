@@ -4,6 +4,7 @@
  */
 
 import type { WeatherData, ForecastData, RecommendationResponse, HeatData } from '../types';
+import type { TravelRiskComparison } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch } from './api';
 export { toRecommendationForecast } from './forecastMapping';
@@ -250,6 +251,16 @@ export async function getDashboardRecommendations(
   return apiFetch<RecommendationResponse>('/dashboard', {
     method: 'POST',
     body: JSON.stringify({ location, current, forecast }),
+  });
+}
+
+export async function compareTravelRisk(
+  origin: { latitude: number; longitude: number; label?: string },
+  destination: { latitude: number; longitude: number; label?: string },
+): Promise<TravelRiskComparison> {
+  return apiFetch<TravelRiskComparison>('/travel/compare', {
+    method: 'POST',
+    body: JSON.stringify({ origin, destination }),
   });
 }
 

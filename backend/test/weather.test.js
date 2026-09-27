@@ -288,3 +288,36 @@ test('destination endpoint returns structured data for Travel Safety AI', async 
   }
 });
 
+test('travel compare endpoint returns a risk score and factors for the trip', async () => {
+  resetMemoryStore();
+  clearWeatherCache();
+  const originalFetch = global.fetch;
+  const port = 3013;
+  global.fetch = async (url, options) => {
+    if (String(url).startsWith('http://127.0.0.1:')) return originalFetch(url, options);
+    return new Response(JSON.stringify(providerPayload), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+  const server = await startServer(port);
+
+  try {
+    const token = await register(`travel-risk-${Date.now()}@test.com`, port);
+    const result = await request('POST', '/api/v1/travel/compare', {
+      origin: { latitude: 6.9271, longitude: 79.8612, label: 'Colombo' },
+      destination: { latitude: 6.9271, longitude: 80.5, label: 'Kandy' },
+    }, token, port);
+
+    assert.equal(result.status, 200);
+    assert.ok(result.payload.score >= 0 && result.payload.score <= 100);
+    assert.ok(['low', 'moderate', 'high'].includes(result.payload.riskLevel));
+    assert.ok(Array.isArray(result.payload.factors));
+    assert.ok(result.payload.summary.length > 0);
+  } finally {
+    global.fetch = originalFetch;
+    clearWeatherCache();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
