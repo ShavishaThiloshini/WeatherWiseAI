@@ -236,3 +236,55 @@ test('weather endpoint validates coordinates before contacting provider', async 
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('destination endpoint returns structured data for Travel Safety AI', async () => {
+  resetMemoryStore();
+  clearWeatherCache();
+  const originalFetch = global.fetch;
+  const port = 3012;
+  global.fetch = async (url, options) => {
+    if (String(url).startsWith('http://127.0.0.1:')) return originalFetch(url, options);
+    return new Response(JSON.stringify(providerPayload), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+  const server = await startServer(port);
+
+  try {
+    const token = await register(`dest-weather-${Date.now()}@test.com`, port);
+    const result = await request('GET', '/api/v1/weather/destination?lat=6.9271&lon=79.8612', undefined, token, port);
+
+    assert.equal(result.status, 200);
+    assert.equal(result.payload.success, true);
+    
+    assert.deepEqual(result.payload.destination, {
+      latitude: 6.9271,
+      longitude: 79.8612,
+      name: 'Unknown Location'
+    });
+
+    assert.equal(result.payload.weather.temperature, 31.5);
+    assert.equal(result.payload.weather.feelsLike, 34.2);
+    assert.equal(result.payload.weather.condition, 'Partly Cloudy');
+    assert.equal(result.payload.weather.humidity, 72);
+    assert.equal(result.payload.weather.windSpeed, 18);
+    assert.equal(result.payload.weather.windDirection, 135);
+    assert.equal(result.payload.weather.uvIndex, 8);
+    assert.equal(result.payload.weather.rainProbability, 75);
+    assert.equal(result.payload.weather.visibility, 8);
+    
+    assert.equal(result.payload.forecast.length, 1);
+    assert.equal(result.payload.forecast[0].date, '2026-09-13');
+    assert.equal(result.payload.forecast[0].maxTemp, 33);
+    assert.equal(result.payload.forecast[0].minTemp, 25);
+    assert.equal(result.payload.forecast[0].rainProbability, 80);
+    
+    assert.ok(result.payload.timestamp);
+  } finally {
+    global.fetch = originalFetch;
+    clearWeatherCache();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+

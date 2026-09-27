@@ -1,7 +1,7 @@
 const express = require('express');
 
 const { requireAuth } = require('../middleware/auth');
-const { getCurrentWeather, getForecastWeather, getHourlyForecast } = require('../services/weather.service');
+const { getCurrentWeather, getForecastWeather, getHourlyForecast, getDestinationWeather } = require('../services/weather.service');
 
 const router = express.Router();
 
@@ -95,6 +95,16 @@ router.get('/severe-weather', async (req, res, next) => {
     const { getSevereWeatherData } = require('../services/severe-weather.service');
     const severeWeather = await getSevereWeatherData(req.query.lat, req.query.lon);
     return res.json(severeWeather);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get('/destination', async (req, res, next) => {
+  try {
+    validateCoordinates(req.query.lat, req.query.lon);
+    const destinationWeather = await getDestinationWeather(req.query.lat, req.query.lon);
+    return res.json(destinationWeather);
   } catch (error) {
     return next(error);
   }

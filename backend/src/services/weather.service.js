@@ -55,10 +55,45 @@ async function getHourlyForecast(latitude, longitude) {
   };
 }
 
+async function getDestinationWeather(latitude, longitude) {
+  const normalized = await loadNormalizedWeather(latitude, longitude);
+  
+  return {
+    success: true,
+    destination: {
+      latitude: Number(latitude),
+      longitude: Number(longitude),
+      name: "Unknown Location"
+    },
+    weather: {
+      temperature: normalized.current.temperature_c,
+      feelsLike: normalized.current.feels_like_c,
+      condition: normalized.current.conditionLabel,
+      humidity: normalized.current.humidity_percent,
+      windSpeed: normalized.current.wind_speed_kmh,
+      windDirection: normalized.current.wind_direction_degrees,
+      uvIndex: normalized.current.uv_index,
+      rainProbability: normalized.current.rain_probability_percent,
+      precipitation: normalized.current.precipitation_mm,
+      visibility: normalized.current.visibility_km
+    },
+    forecast: normalized.daily.map(day => ({
+      date: day.date,
+      maxTemp: day.maxTempC,
+      minTemp: day.minTempC,
+      condition: day.conditionLabel,
+      rainProbability: day.rainProbability,
+      uvIndex: day.uvIndex
+    })),
+    timestamp: new Date().toISOString()
+  };
+}
+
 module.exports = {
   clearWeatherCache,
   getCurrentWeather,
   getForecastWeather,
   getHourlyForecast,
+  getDestinationWeather,
   weatherCache,
 };
