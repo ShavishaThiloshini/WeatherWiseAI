@@ -4,6 +4,7 @@
  */
 
 import type { WeatherData, ForecastData, RecommendationResponse, HeatData } from '../types';
+import type { TravelRiskComparison } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch } from './api';
 export { toRecommendationForecast } from './forecastMapping';
@@ -253,6 +254,16 @@ export async function getDashboardRecommendations(
   });
 }
 
+export async function compareTravelRisk(
+  origin: { latitude: number; longitude: number; label?: string },
+  destination: { latitude: number; longitude: number; label?: string },
+): Promise<TravelRiskComparison> {
+  return apiFetch<TravelRiskComparison>('/travel/compare', {
+    method: 'POST',
+    body: JSON.stringify({ origin, destination }),
+  });
+}
+
 /**
  * Fetches Heat Warning data for the Safety Center.
  * Uses a mock fallback if the backend is unavailable.
@@ -340,6 +351,37 @@ export async function getSevereWeatherAlerts(
           windDirection: 'NE',
         }
       ]
+    };
+  }
+}
+
+export async function getDestinationWeatherData(
+  latitude: number,
+  longitude: number,
+): Promise<any> {
+  try {
+    return await apiFetch<any>(
+      `/weather/destination?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`
+    );
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function getTravelRecommendation(
+  origin: { latitude: number; longitude: number },
+  destination: { latitude: number; longitude: number }
+): Promise<any> {
+  try {
+    return await apiFetch<any>('/travel/recommendation', {
+      method: 'POST',
+      body: JSON.stringify({ origin, destination }),
+    });
+  } catch (error) {
+    // Fallback if AI endpoint is not ready
+    return {
+      bestTime: 'Data unavailable',
+      message: 'AI recommendation module is currently unavailable.',
     };
   }
 }

@@ -6,8 +6,8 @@ import { ScreenContainer } from '../components/ScreenContainer';
 import { BORDER_RADIUS, COLORS, SPACING, TYPOGRAPHY } from '../constants/theme';
 import type { TravelMapStackParamList } from '../navigation/RootNavigator';
 import { getCurrentLocation } from '../services/locationService';
-import { getCurrentWeather } from '../services/weatherService';
-import type { LocationData, WeatherData } from '../types';
+import { compareTravelRisk, getCurrentWeather } from '../services/weatherService';
+import type { LocationData, TravelRiskComparison, WeatherData } from '../types';
 
 type Props = NativeStackScreenProps<TravelMapStackParamList, 'Travel'>;
 
@@ -25,14 +25,6 @@ interface GeocodingResult {
     state?: string;
     country?: string;
   };
-}
-
-interface WeatherRisk {
-  score: number;
-  label: string;
-  color: string;
-  advice: string;
-  factors: string[];
 }
 
 async function findDestination(query: string): Promise<LocationData> {
@@ -61,45 +53,6 @@ async function findDestination(query: string): Promise<LocationData> {
     region: address.state || '',
     country,
     displayName: result.display_name || [city, country].filter(Boolean).join(', '),
-  };
-}
-
-function calculateWeatherRisk(weather: WeatherData): WeatherRisk {
-  let score = 0;
-  const factors: string[] = [];
-  const addRisk = (points: number, message: string) => {
-    score += points;
-    factors.push(message);
-  };
-
-  if (weather.condition === 'stormy') addRisk(45, 'Thunderstorms may bring lightning and sudden downpours.');
-  if (weather.condition === 'snowy') addRisk(20, 'Snow or ice may make journeys more hazardous.');
-  if (weather.condition === 'foggy') addRisk(15, 'Reduced visibility may affect travel.');
-  if (weather.rainProbability >= 75) addRisk(25, 'Very high chance of rain at your destination.');
-  else if (weather.rainProbability >= 45) addRisk(12, 'Rain is possible during your trip.');
-  if (weather.windSpeedKmh >= 50) addRisk(20, 'Strong winds could make travel difficult.');
-  else if (weather.windSpeedKmh >= 35) addRisk(10, 'Gusty conditions are expected.');
-  if (weather.visibilityKm > 0 && weather.visibilityKm <= 2) addRisk(20, 'Visibility is very low.');
-  else if (weather.visibilityKm > 0 && weather.visibilityKm <= 5) addRisk(10, 'Visibility may be reduced.');
-  if (weather.feelsLikeC >= 40) addRisk(15, 'Extreme heat calls for extra care and hydration.');
-  else if (weather.feelsLikeC <= -10) addRisk(15, 'Extreme cold may affect comfort and safety.');
-
-  const boundedScore = Math.min(score, 100);
-  if (boundedScore >= 75) {
-    return { score: boundedScore, label: 'Severe', color: COLORS.danger, advice: 'Consider delaying non-essential travel and check local alerts.', factors };
-  }
-  if (boundedScore >= 50) {
-    return { score: boundedScore, label: 'High', color: '#FF8A55', advice: 'Plan carefully and allow extra time for changing conditions.', factors };
-  }
-  if (boundedScore >= 25) {
-    return { score: boundedScore, label: 'Moderate', color: COLORS.warning, advice: 'Travel is possible. Stay alert and prepare for the conditions.', factors };
-  }
-  return {
-    score: boundedScore,
-    label: 'Low',
-    color: COLORS.secondary,
-    advice: 'Weather looks manageable. Keep an eye on the forecast before leaving.',
-    factors: factors.length ? factors : ['No significant weather hazards detected right now.'],
   };
 }
 
@@ -152,6 +105,7 @@ export function TravelScreen({ navigation }: Props) {
     originWeather: WeatherData;
     destination: LocationData;
     destinationWeather: WeatherData;
+    risk: TravelRiskComparison;
   } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -168,11 +122,15 @@ export function TravelScreen({ navigation }: Props) {
         findDestination(query),
         getCurrentLocation(),
       ]);
-      const [destinationWeather, originWeather] = await Promise.all([
+      const [destinationWeather, originWeather, risk] = await Promise.all([
         getCurrentWeather(destination.latitude, destination.longitude),
         getCurrentWeather(origin.latitude, origin.longitude),
+        compareTravelRisk(
+          { latitude: origin.latitude, longitude: origin.longitude, label: origin.displayName },
+          { latitude: destination.latitude, longitude: destination.longitude, label: destination.displayName },
+        ),
       ]);
-      setComparison({ origin, originWeather, destination, destinationWeather });
+      setComparison({ origin, originWeather, destination, destinationWeather, risk });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to compare weather right now.');
     } finally {
@@ -180,13 +138,19 @@ export function TravelScreen({ navigation }: Props) {
     }
   };
 
-  const risk = comparison ? calculateWeatherRisk(comparison.destinationWeather) : null;
+  const risk = comparison?.risk;
+  const riskColor = risk?.riskLevel === 'high'
+    ? COLORS.danger
+    : risk?.riskLevel === 'moderate'
+      ? COLORS.warning
+      : COLORS.secondary;
+  const riskLabel = risk?.riskLevel ? risk.riskLevel[0].toUpperCase() + risk.riskLevel.slice(1) : '';
 
   return (
     <ScreenContainer scrollable>
       <View style={styles.heading}>
         <Text style={styles.eyebrow}>TRAVEL WEATHER</Text>
-        <Text style={styles.title}>Know before{ '\n' }you go.</Text>
+        <Text style={styles.title}>Know before{'\n'}you go.</Text>
         <Text style={styles.subtitle}>Compare live conditions where you are with the weather at your destination.</Text>
       </View>
 
@@ -231,21 +195,21 @@ export function TravelScreen({ navigation }: Props) {
 
       {comparison && risk ? (
         <>
-          <View style={[styles.riskPanel, { borderTopColor: risk.color }]}>
+          <View style={[styles.riskPanel, { borderTopColor: riskColor }]}>
             <View style={styles.riskHeader}>
               <View>
                 <Text style={styles.panelEyebrow}>WEATHER TRAVEL RISK</Text>
-                <Text style={[styles.riskLabel, { color: risk.color }]}>{risk.label}</Text>
+                <Text style={[styles.riskLabel, { color: riskColor }]}>{riskLabel}</Text>
               </View>
               <View style={styles.scoreWrap}>
-                <Text style={[styles.scoreValue, { color: risk.color }]}>{risk.score}</Text>
+                <Text style={[styles.scoreValue, { color: riskColor }]}>{risk.score}</Text>
                 <Text style={styles.scoreOutOf}>/ 100</Text>
               </View>
             </View>
             <View style={styles.scoreTrack}>
-              <View style={[styles.scoreFill, { width: `${risk.score}%`, backgroundColor: risk.color }]} />
+              <View style={[styles.scoreFill, { width: `${risk.score}%`, backgroundColor: riskColor }]} />
             </View>
-            <Text style={styles.riskAdvice}>{risk.advice}</Text>
+            <Text style={styles.riskAdvice}>{risk.summary}</Text>
           </View>
 
           <View style={styles.comparisonHeading}>
@@ -261,9 +225,12 @@ export function TravelScreen({ navigation }: Props) {
           <View style={styles.factorsSection}>
             <Text style={styles.sectionTitle}>What affects this score</Text>
             {risk.factors.map((factor) => (
-              <View key={factor} style={styles.factorRow}>
-                <Ionicons name={risk.score >= 50 ? 'warning-outline' : 'checkmark-circle-outline'} size={18} color={risk.score >= 50 ? risk.color : COLORS.secondary} />
-                <Text style={styles.factorText}>{factor}</Text>
+              <View key={factor.type} style={styles.factorRow}>
+                <Ionicons name={risk.riskLevel === 'high' ? 'warning-outline' : 'checkmark-circle-outline'} size={18} color={riskColor} />
+                <View style={styles.factorCopy}>
+                  <Text style={styles.factorTitle}>{factor.title}</Text>
+                  <Text style={styles.factorText}>{factor.message}</Text>
+                </View>
               </View>
             ))}
           </View>
@@ -307,7 +274,7 @@ const styles = StyleSheet.create({
   emptyCopy: { color: COLORS.textSecondary, fontSize: TYPOGRAPHY.fontSize.s, lineHeight: 21, textAlign: 'center' },
   riskPanel: { backgroundColor: COLORS.backgroundCard, borderColor: COLORS.border, borderRadius: BORDER_RADIUS.s, borderTopWidth: 3, marginBottom: SPACING.l, padding: SPACING.m },
   riskHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  panelEyebrow: { color: COLORS.textSecondary, fontSize: TYPOGRAPHY.fontSize.xs, fontWeight: TYPOGRAPHY.fontWeight.bold, letterSpacing: 0.6 },
+  panelEyebrow: { color: COLORS.textSecondary, fontSize: TYPOGRAPHY.fontSize.xs, fontWeight: TYPOGRAPHY.fontWeight.bold },
   riskLabel: { fontSize: TYPOGRAPHY.fontSize.xl, fontWeight: TYPOGRAPHY.fontWeight.bold, marginTop: 2 },
   scoreWrap: { alignItems: 'baseline', flexDirection: 'row' },
   scoreValue: { fontSize: 40, fontWeight: TYPOGRAPHY.fontWeight.extraBold, lineHeight: 46 },
@@ -335,7 +302,9 @@ const styles = StyleSheet.create({
   routeArrow: { alignItems: 'center', justifyContent: 'center', width: 17 },
   factorsSection: { marginTop: SPACING.l },
   factorRow: { alignItems: 'flex-start', flexDirection: 'row', gap: SPACING.s, marginTop: SPACING.m },
-  factorText: { color: COLORS.textSecondary, flex: 1, fontSize: TYPOGRAPHY.fontSize.s, lineHeight: 20 },
+  factorCopy: { flex: 1 },
+  factorTitle: { color: COLORS.textPrimary, fontSize: TYPOGRAPHY.fontSize.s, fontWeight: TYPOGRAPHY.fontWeight.semiBold },
+  factorText: { color: COLORS.textSecondary, fontSize: TYPOGRAPHY.fontSize.s, lineHeight: 20, marginTop: 2 },
   disclaimer: { color: COLORS.textSecondary, fontSize: TYPOGRAPHY.fontSize.xs, lineHeight: 18, marginTop: SPACING.l },
   mapLink: { alignItems: 'center', borderTopColor: COLORS.border, borderTopWidth: 1, flexDirection: 'row', gap: SPACING.s, marginTop: SPACING.l, paddingVertical: SPACING.m },
   mapLinkText: { color: COLORS.info, flex: 1, fontSize: TYPOGRAPHY.fontSize.s, fontWeight: TYPOGRAPHY.fontWeight.semiBold },

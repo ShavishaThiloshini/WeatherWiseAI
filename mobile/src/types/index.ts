@@ -205,6 +205,40 @@ export interface ApiResponse<T> {
   isLoading: boolean;
 }
 
+export interface TravelRiskFactor {
+  type: string;
+  title: string;
+  message: string;
+  score: number;
+  value: string;
+}
+
+export interface TravelRiskComparison {
+  score: number;
+  riskLevel: 'low' | 'moderate' | 'high';
+  summary: string;
+  factors: TravelRiskFactor[];
+  origin: {
+    label: string;
+    latitude: number;
+    longitude: number;
+    condition: string;
+    temperature: number;
+  };
+  destination: {
+    label: string;
+    latitude: number;
+    longitude: number;
+    condition: string;
+    temperature: number;
+  };
+  comparison: {
+    temperatureDelta: number;
+    rainDelta: number;
+    windDelta: number;
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Heat Warning Data
 // ---------------------------------------------------------------------------

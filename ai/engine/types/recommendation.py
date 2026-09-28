@@ -93,3 +93,4 @@ class EngineResult:
     summary: str
     request_id: str | None
     data_freshness: str | None
+    overall_risk: Any | None = None  # OverallWeatherRisk -- set by engine on Day 20
