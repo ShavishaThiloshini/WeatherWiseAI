@@ -103,7 +103,8 @@ router.get('/severe-weather', async (req, res, next) => {
 router.get('/destination', async (req, res, next) => {
   try {
     validateCoordinates(req.query.lat, req.query.lon);
-    const destinationWeather = await getDestinationWeather(req.query.lat, req.query.lon);
+    const destinationName = typeof req.query.name === 'string' ? req.query.name : 'Destination';
+    const destinationWeather = await getDestinationWeather(req.query.lat, req.query.lon, destinationName);
     return res.json(destinationWeather);
   } catch (error) {
     return next(error);

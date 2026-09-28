@@ -1,4 +1,5 @@
 const { fetchOpenMeteo, normalizeProviderPayload } = require('./weather-provider.service');
+const { assessDestinationWeather } = require('./travel-risk.service');
 
 const weatherCache = new Map();
 
@@ -55,15 +56,16 @@ async function getHourlyForecast(latitude, longitude) {
   };
 }
 
-async function getDestinationWeather(latitude, longitude) {
+async function getDestinationWeather(latitude, longitude, name = 'Destination') {
   const normalized = await loadNormalizedWeather(latitude, longitude);
-  
+  const label = String(name || '').trim().slice(0, 120) || 'Destination';
+
   return {
     success: true,
     destination: {
       latitude: Number(latitude),
       longitude: Number(longitude),
-      name: "Unknown Location"
+      name: label,
     },
     weather: {
       temperature: normalized.current.temperature_c,
@@ -85,6 +87,8 @@ async function getDestinationWeather(latitude, longitude) {
       rainProbability: day.rainProbability,
       uvIndex: day.uvIndex
     })),
+    riskAssessment: assessDestinationWeather(normalized.current, { destinationLabel: label }),
+    timezone: normalized.timezone,
     timestamp: new Date().toISOString()
   };
 }

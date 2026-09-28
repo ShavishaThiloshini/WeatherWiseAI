@@ -4,6 +4,7 @@ const app = require('../src/app');
 const { resetMemoryStore } = require('../src/db');
 const { clearWeatherCache } = require('../src/services/weather.service');
 const { fetchOpenMeteo, normalizeProviderPayload } = require('../src/services/weather-provider.service');
+const { assessDestinationWeather } = require('../src/services/travel-risk.service');
 
 const providerPayload = {
   timezone: 'Asia/Colombo',
@@ -174,6 +175,22 @@ test('provider failures become typed weather errors', async () => {
   );
 });
 
+test('destination risk assessment ignores missing visibility readings', () => {
+  const result = assessDestinationWeather({
+    temperature_c: 20,
+    feels_like_c: 20,
+    rain_probability_percent: 0,
+    wind_speed_kmh: 10,
+    uv_index: 3,
+    visibility_km: null,
+    condition: 'sunny',
+    conditionLabel: 'Clear Sky',
+  });
+
+  assert.equal(result.riskLevel, 'low');
+  assert.equal(result.factors.some((factor) => factor.type === 'visibility'), false);
+});
+
 test('weather endpoints fetch and cache normalized provider data', async () => {
   resetMemoryStore();
   clearWeatherCache();
@@ -253,7 +270,7 @@ test('destination endpoint returns structured data for Travel Safety AI', async 
 
   try {
     const token = await register(`dest-weather-${Date.now()}@test.com`, port);
-    const result = await request('GET', '/api/v1/weather/destination?lat=6.9271&lon=79.8612', undefined, token, port);
+    const result = await request('GET', '/api/v1/weather/destination?lat=6.9271&lon=79.8612&name=Kandy', undefined, token, port);
 
     assert.equal(result.status, 200);
     assert.equal(result.payload.success, true);
@@ -261,7 +278,7 @@ test('destination endpoint returns structured data for Travel Safety AI', async 
     assert.deepEqual(result.payload.destination, {
       latitude: 6.9271,
       longitude: 79.8612,
-      name: 'Unknown Location'
+      name: 'Kandy'
     });
 
     assert.equal(result.payload.weather.temperature, 31.5);
@@ -273,6 +290,10 @@ test('destination endpoint returns structured data for Travel Safety AI', async 
     assert.equal(result.payload.weather.uvIndex, 8);
     assert.equal(result.payload.weather.rainProbability, 75);
     assert.equal(result.payload.weather.visibility, 8);
+    assert.equal(result.payload.riskAssessment.riskLevel, 'low');
+    assert.ok(result.payload.riskAssessment.score >= 0 && result.payload.riskAssessment.score <= 100);
+    assert.ok(result.payload.riskAssessment.factors.some((factor) => factor.type === 'rain'));
+    assert.ok(result.payload.riskAssessment.summary.includes('Kandy'));
     
     assert.equal(result.payload.forecast.length, 1);
     assert.equal(result.payload.forecast[0].date, '2026-09-13');
