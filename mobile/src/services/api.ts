@@ -11,10 +11,17 @@ export const API_BASE_URL = (() => {
   }
 
   if (Platform.OS === 'web') {
-    return 'http://127.0.0.1:3000/api/v1';
+    // Use localhost for browser-based Expo runs. 127.0.0.1 can fail in some browser/OS
+    // combinations, leading to the browser-level "Failed to fetch" error seen during sign-up.
+    return 'http://localhost:3000/api/v1';
   }
 
-  // Native devices need the computer's LAN address; 127.0.0.1 is the device itself.
+  // Use the Android emulator host when running on-device/native emulators.
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:3000/api/v1';
+  }
+
+  // Native iOS/simulator devices need the computer's LAN address; 127.0.0.1 is the device itself.
   return 'http://172.20.10.2:3000/api/v1';
 })();
 
