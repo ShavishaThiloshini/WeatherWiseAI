@@ -354,3 +354,34 @@ export async function getSevereWeatherAlerts(
     };
   }
 }
+
+export async function getDestinationWeatherData(
+  latitude: number,
+  longitude: number,
+): Promise<any> {
+  try {
+    return await apiFetch<any>(
+      `/weather/destination?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`
+    );
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function getTravelRecommendation(
+  origin: { latitude: number; longitude: number },
+  destination: { latitude: number; longitude: number }
+): Promise<any> {
+  try {
+    return await apiFetch<any>('/travel/recommendation', {
+      method: 'POST',
+      body: JSON.stringify({ origin, destination }),
+    });
+  } catch (error) {
+    // Fallback if AI endpoint is not ready
+    return {
+      bestTime: 'Data unavailable',
+      message: 'AI recommendation module is currently unavailable.',
+    };
+  }
+}
