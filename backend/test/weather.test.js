@@ -40,6 +40,33 @@ const providerPayload = {
   },
 };
 
+function weatherFixture({
+  temperature = 25,
+  feelsLike = 25,
+  windSpeed = 10,
+  rainProbability = 10,
+  visibilityKm = 10,
+  uvIndex = 3,
+  weatherCode = 0,
+} = {}) {
+  return {
+    ...providerPayload,
+    current: {
+      ...providerPayload.current,
+      temperature_2m: temperature,
+      apparent_temperature: feelsLike,
+      wind_speed_10m: windSpeed,
+      weather_code: weatherCode,
+      uv_index: uvIndex,
+    },
+    hourly: {
+      ...providerPayload.hourly,
+      precipitation_probability: [0, rainProbability],
+      visibility: [visibilityKm * 1000, visibilityKm * 1000],
+    },
+  };
+}
+
 const request = async (method, path, body, token, port) => {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -309,14 +336,54 @@ test('destination endpoint returns structured data for Travel Safety AI', async 
   }
 });
 
-test('travel compare endpoint returns a risk score and factors for the trip', async () => {
+test('travel compare classifies low, moderate, and high destination weather risk', async () => {
   resetMemoryStore();
   clearWeatherCache();
   const originalFetch = global.fetch;
   const port = 3013;
+  const originWeather = weatherFixture();
+  const scenarios = [
+    {
+      riskLevel: 'low',
+      score: 6,
+      expectedFactors: ['stable'],
+      origin: { latitude: 6.9, longitude: 79.8, label: 'Origin' },
+      destination: { latitude: 7.1, longitude: 80.1, label: 'Low-risk destination' },
+      weather: weatherFixture(),
+    },
+    {
+      riskLevel: 'moderate',
+      score: 46,
+      expectedFactors: ['heat', 'rain'],
+      origin: { latitude: 6.91, longitude: 79.81, label: 'Origin' },
+      destination: { latitude: 7.11, longitude: 80.11, label: 'Moderate-risk destination' },
+      weather: weatherFixture({ temperature: 33, feelsLike: 36, rainProbability: 60 }),
+    },
+    {
+      riskLevel: 'high',
+      score: 100,
+      expectedFactors: ['storm', 'heat', 'rain', 'wind', 'uv', 'visibility', 'temperature-change'],
+      origin: { latitude: 6.92, longitude: 79.82, label: 'Origin' },
+      destination: { latitude: 7.12, longitude: 80.12, label: 'High-risk destination' },
+      weather: weatherFixture({
+        temperature: 40,
+        feelsLike: 42,
+        windSpeed: 50,
+        rainProbability: 95,
+        visibilityKm: 2,
+        uvIndex: 9,
+        weatherCode: 95,
+      }),
+    },
+  ];
   global.fetch = async (url, options) => {
     if (String(url).startsWith('http://127.0.0.1:')) return originalFetch(url, options);
-    return new Response(JSON.stringify(providerPayload), {
+    const latitude = Number(new URL(String(url)).searchParams.get('latitude'));
+    const scenario = scenarios.find(({ origin, destination }) =>
+      Math.abs(latitude - origin.latitude) < 0.001 || Math.abs(latitude - destination.latitude) < 0.001
+    );
+    const isDestination = scenario && Math.abs(latitude - scenario.destination.latitude) < 0.001;
+    return new Response(JSON.stringify(isDestination ? scenario.weather : originWeather), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -325,16 +392,33 @@ test('travel compare endpoint returns a risk score and factors for the trip', as
 
   try {
     const token = await register(`travel-risk-${Date.now()}@test.com`, port);
-    const result = await request('POST', '/api/v1/travel/compare', {
-      origin: { latitude: 6.9271, longitude: 79.8612, label: 'Colombo' },
-      destination: { latitude: 6.9271, longitude: 80.5, label: 'Kandy' },
-    }, token, port);
+    for (const scenario of scenarios) {
+      clearWeatherCache();
+      const result = await request('POST', '/api/v1/travel/compare', {
+        origin: scenario.origin,
+        destination: scenario.destination,
+      }, token, port);
 
-    assert.equal(result.status, 200);
-    assert.ok(result.payload.score >= 0 && result.payload.score <= 100);
-    assert.ok(['low', 'moderate', 'high'].includes(result.payload.riskLevel));
-    assert.ok(Array.isArray(result.payload.factors));
-    assert.ok(result.payload.summary.length > 0);
+      assert.equal(result.status, 200);
+      assert.equal(result.payload.riskLevel, scenario.riskLevel);
+      assert.equal(result.payload.score, scenario.score);
+      assert.equal(result.payload.origin.label, scenario.origin.label);
+      assert.equal(result.payload.destination.label, scenario.destination.label);
+      assert.equal(result.payload.origin.temperature, originWeather.current.temperature_2m);
+      assert.equal(result.payload.destination.temperature, scenario.weather.current.temperature_2m);
+      assert.equal(
+        result.payload.comparison.temperatureDelta,
+        scenario.weather.current.temperature_2m - originWeather.current.temperature_2m,
+      );
+      assert.ok(result.payload.summary.includes(scenario.destination.label));
+      assert.ok(Array.isArray(result.payload.factors));
+      for (const factorType of scenario.expectedFactors) {
+        assert.ok(
+          result.payload.factors.some((factor) => factor.type === factorType),
+          `Expected ${factorType} factor for ${scenario.riskLevel} weather`,
+        );
+      }
+    }
   } finally {
     global.fetch = originalFetch;
     clearWeatherCache();
