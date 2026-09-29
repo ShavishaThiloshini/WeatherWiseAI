@@ -121,6 +121,25 @@ def _forecast_days(forecast: dict | None) -> list[dict]:
     return normalized
 
 
+def _plants(value: object) -> list[dict]:
+    if not isinstance(value, list):
+        return []
+    plants = []
+    for plant in value:
+        if not isinstance(plant, dict):
+            continue
+        name = _text(plant.get("name"))
+        if not name:
+            continue
+        normalized = {"name": name}
+        for key in ("id", "species_type", "last_watered_at"):
+            text = _text(plant.get(key))
+            if text:
+                normalized[key] = text
+        plants.append(normalized)
+    return plants
+
+
 def from_compact(
     payload: dict,
     *,
@@ -180,6 +199,7 @@ def from_compact(
         request_id=request_id,
         rain_timing=_text(payload.get("rain_timing")),
         forecast_days=_forecast_days(payload.get("forecast")),
+        plants=_plants(payload.get("plants")),
         limitations=limitations,
     )
 
@@ -254,6 +274,7 @@ def from_envelope(payload: dict) -> WeatherSnapshot:
         request_id=_text(payload.get("request_id")),
         rain_timing=timing,
         forecast_days=_forecast_days(forecast),
+        plants=_plants(payload.get("plants")),
         limitations=limitations,
     )
 

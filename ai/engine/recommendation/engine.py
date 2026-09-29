@@ -10,6 +10,7 @@ from engine.rules.forecast import forecast_trend_rules
 from engine.rules.heat import heat_risk_level, heat_rules
 from engine.rules.hydration import hydration_rules
 from engine.rules.overall_risk import classify_overall_risk
+from engine.rules.plant_care import plant_watering_rules
 from engine.rules.rain import rain_risk_level, rain_rules
 from engine.rules.thunderstorm import thunderstorm_alert, thunderstorm_rules
 from engine.rules.timing import timing_rules
@@ -97,6 +98,7 @@ def run_engine(weather: WeatherSnapshot) -> EngineResult:
     collected.extend(activity_rules(weather))
     collected.extend(forecast_trend_rules(weather))
     collected.extend(timing_rules(weather))
+    collected.extend(plant_watering_rules(weather))
 
     resolved = resolve_conflicts(collected)
     if not resolved:

@@ -34,6 +34,7 @@ class WeatherSnapshot:
     request_id: str | None = None
     rain_timing: str | None = None  # now | soon | later | unknown
     forecast_days: list[dict[str, Any]] = field(default_factory=list)
+    plants: list[dict[str, Any]] = field(default_factory=list)
     limitations: list[str] = field(default_factory=list)
 
 
