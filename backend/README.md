@@ -51,9 +51,13 @@ factors, and indexes for user, location, cache, alert, and conversation reads.
 - `GET/PATCH /api/v1/users/preferences` - authenticated user preferences
 - `GET /api/v1/alerts` - authenticated active alerts, optionally filtered by `locationId` or `active=false`
 - `GET /api/v1/alerts/:id` - authenticated alert detail for an owned location
+- `GET /api/v1/maps/search?q=` - authenticated place search through the maps provider
+- `GET /api/v1/maps/reverse?lat=&lon=` - authenticated reverse geocoding
+- `GET /api/v1/maps/weather?lat=&lon=` - authenticated map center with current and hourly weather
 
 AI/dashboard requests must include either an owned `location_id` or a `location` object,
-plus a `current` weather object. The backend does not invent live provider data; a
-weather adapter will supply that data in a later integration task.
+plus a `current` weather object. Live weather is supplied by the weather provider adapter.
+Maps requests use Nominatim by default; configure `MAP_PROVIDER_USER_AGENT` for the
+deployment and keep provider calls server-side. Place and weather responses are cached.
 
 The API is versioned under `/api/v1` and uses a routes/controllers/middleware structure described in the TRD.

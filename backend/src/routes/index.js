@@ -2,6 +2,7 @@ const express = require('express');
 
 const healthRouter = require('./health.routes');
 const locationRouter = require('./location.routes');
+const mapsRouter = require('./maps.routes');
 const weatherRouter = require('./weather.routes');
 const alertsRouter = require('./alerts.routes');
 const { requireAuth } = require('../middleware/auth');
@@ -80,6 +81,7 @@ async function compareTravelWeather(origin, destination) {
 
 router.use('/health', healthRouter);
 router.use('/locations', locationRouter);
+router.use('/maps', mapsRouter);
 router.use('/weather', weatherRouter);
 router.use('/alerts', alertsRouter);
 

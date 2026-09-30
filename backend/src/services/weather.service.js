@@ -56,6 +56,17 @@ async function getHourlyForecast(latitude, longitude) {
   };
 }
 
+async function getMapWeather(latitude, longitude) {
+  const normalized = await loadNormalizedWeather(latitude, longitude);
+  return {
+    center: { latitude: Number(latitude), longitude: Number(longitude) },
+    current: normalized.current,
+    hourlyForecast: normalized.hourly,
+    timezone: normalized.timezone,
+    cached: normalized.cached,
+  };
+}
+
 async function getDestinationWeather(latitude, longitude, name = 'Destination') {
   const normalized = await loadNormalizedWeather(latitude, longitude);
   const label = String(name || '').trim().slice(0, 120) || 'Destination';
@@ -98,6 +109,7 @@ module.exports = {
   getCurrentWeather,
   getForecastWeather,
   getHourlyForecast,
+  getMapWeather,
   getDestinationWeather,
   weatherCache,
 };
