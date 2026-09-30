@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from engine.recommendation.engine import recommend_from_payload
+from engine.map_interpretation import interpret_map_location
 
 app = FastAPI(title="WeatherWise AI Recommendation Service", version="1.0.0")
 
@@ -22,6 +23,11 @@ def health() -> dict[str, str]:
 @app.post("/recommend")
 def recommend(payload: dict[str, Any]) -> dict[str, Any]:
     return recommend_from_payload(payload)
+
+
+@app.post("/map/interpret")
+def map_interpret(payload: dict[str, Any]) -> dict[str, Any]:
+    return interpret_map_location(payload)
 
 
 @app.post("/assistant")
