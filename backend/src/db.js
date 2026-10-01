@@ -116,6 +116,59 @@ async function createLocation(userId, location) {
   return { ...record, isDefault: record.is_default, createdAt: record.created_at };
 }
 
+async function findLocationById(userId, locationId) {
+  const database = getPool();
+  if (database) {
+    const [rows] = await database.query('SELECT id, label, latitude, longitude, timezone, is_default AS isDefault, created_at AS createdAt FROM locations WHERE id = ? AND user_id = ? LIMIT 1', [locationId, userId]);
+    return rows[0] || null;
+  }
+  const loc = memoryStore.locations.find((location) => location.id === locationId && location.user_id === userId);
+  return loc ? { ...loc, isDefault: loc.is_default, createdAt: loc.created_at } : null;
+}
+
+async function updateLocation(userId, locationId, updates) {
+  const database = getPool();
+  if (database) {
+    const [rows] = await database.query('SELECT * FROM locations WHERE id = ? AND user_id = ? LIMIT 1', [locationId, userId]);
+    if (rows.length === 0) return null;
+
+    if (updates.isDefault) {
+      await database.execute('UPDATE locations SET is_default = FALSE WHERE user_id = ?', [userId]);
+    }
+
+    const current = rows[0];
+    const newLabel = updates.label !== undefined ? String(updates.label).trim() : current.label;
+    const newLat = updates.latitude !== undefined ? Number(updates.latitude) : current.latitude;
+    const newLon = updates.longitude !== undefined ? Number(updates.longitude) : current.longitude;
+    const newTz = updates.timezone !== undefined ? String(updates.timezone) : current.timezone;
+    const newDef = updates.isDefault !== undefined ? Boolean(updates.isDefault) : current.is_default;
+
+    await database.execute(
+      'UPDATE locations SET label = ?, latitude = ?, longitude = ?, timezone = ?, is_default = ? WHERE id = ? AND user_id = ?',
+      [newLabel, newLat, newLon, newTz, newDef, locationId, userId]
+    );
+
+    const [updatedRows] = await database.query('SELECT id, label, latitude, longitude, timezone, is_default AS isDefault, created_at AS createdAt FROM locations WHERE id = ? AND user_id = ? LIMIT 1', [locationId, userId]);
+    return updatedRows[0];
+  }
+
+  const index = memoryStore.locations.findIndex((location) => location.id === locationId && location.user_id === userId);
+  if (index === -1) return null;
+
+  if (updates.isDefault) {
+    memoryStore.locations.filter((item) => item.user_id === userId).forEach((item) => { item.is_default = false; });
+  }
+
+  const loc = memoryStore.locations[index];
+  if (updates.label !== undefined) loc.label = String(updates.label).trim();
+  if (updates.latitude !== undefined) loc.latitude = Number(updates.latitude);
+  if (updates.longitude !== undefined) loc.longitude = Number(updates.longitude);
+  if (updates.timezone !== undefined) loc.timezone = String(updates.timezone);
+  if (updates.isDefault !== undefined) loc.is_default = Boolean(updates.isDefault);
+
+  return { ...loc, isDefault: loc.is_default, createdAt: loc.created_at };
+}
+
 async function deleteLocation(userId, locationId) {
   const database = getPool();
   if (database) {
@@ -192,4 +245,6 @@ module.exports = {
   createUser,
   findAlertById,
   listAlerts,
+  findLocationById,
+  updateLocation,
 };

@@ -1,6 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
-const { createLocation, deleteLocation, listLocations } = require('../db');
+const { createLocation, deleteLocation, listLocations, findLocationById, updateLocation } = require('../db');
 
 const router = express.Router();
 
@@ -22,6 +22,36 @@ router.post('/', async (req, res, next) => {
     }
     const location = await createLocation(req.user.id, { label, latitude, longitude, timezone, isDefault });
     return res.status(201).json({ location });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get('/:id', async (req, res, next) => {
+  try {
+    const location = await findLocationById(req.user.id, req.params.id);
+    if (!location) return res.status(404).json({ error: { code: 'LOCATION_NOT_FOUND', message: 'Location not found' } });
+    return res.json({ location });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.put('/:id', async (req, res, next) => {
+  try {
+    const { label, latitude, longitude, timezone, isDefault } = req.body || {};
+    
+    if (latitude !== undefined && (!Number.isFinite(Number(latitude)) || Number(latitude) < -90 || Number(latitude) > 90)) {
+      return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Valid latitude is required' } });
+    }
+    if (longitude !== undefined && (!Number.isFinite(Number(longitude)) || Number(longitude) < -180 || Number(longitude) > 180)) {
+      return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Valid longitude is required' } });
+    }
+    
+    const location = await updateLocation(req.user.id, req.params.id, { label, latitude, longitude, timezone, isDefault });
+    if (!location) return res.status(404).json({ error: { code: 'LOCATION_NOT_FOUND', message: 'Location not found' } });
+    
+    return res.json({ location });
   } catch (error) {
     return next(error);
   }
