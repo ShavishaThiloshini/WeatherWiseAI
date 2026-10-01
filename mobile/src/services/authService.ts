@@ -3,17 +3,22 @@
  * Day 2 authentication wiring for the WeatherWise AI app.
  */
 
-import { API_BASE_URL } from './api';
+import { API_BASE_URL, apiFetch } from './api';
 
 const AUTH_BASE_URL = `${API_BASE_URL}/auth`;
 
 export interface AuthResponse {
   token: string;
   user: {
-    id: number;
+    id: string;
     name: string;
     email: string;
   };
+}
+
+export async function getCurrentUser(): Promise<AuthResponse['user']> {
+  const response = await apiFetch<{ user: AuthResponse['user'] }>('/auth/me');
+  return response.user;
 }
 
 export async function registerUser(name: string, email: string, password: string): Promise<AuthResponse> {
