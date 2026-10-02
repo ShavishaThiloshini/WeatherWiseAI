@@ -58,6 +58,42 @@ test('authenticated locations support create, list, and delete', async () => {
   }
 });
 
+test('saved locations can be renamed, made default, and retain a default after deletion', async () => {
+  resetMemoryStore();
+  const port = 3033;
+  const server = await startServer(port);
+  try {
+    const token = await register(port);
+    const first = await request(port, 'POST', '/api/v1/locations', {
+      label: 'Colombo', latitude: 6.9271, longitude: 79.8612, timezone: 'Asia/Colombo',
+    }, token);
+    const second = await request(port, 'POST', '/api/v1/locations', {
+      label: 'Kandy', latitude: 7.2906, longitude: 80.6337, timezone: 'Asia/Colombo',
+    }, token);
+
+    assert.equal(first.payload.location.isDefault, true);
+    const update = await request(port, 'PATCH', `/api/v1/locations/${second.payload.location.id}`, {
+      label: 'University', isDefault: true,
+    }, token);
+    assert.equal(update.status, 200);
+    assert.equal(update.payload.location.label, 'University');
+    assert.equal(update.payload.location.isDefault, true);
+
+    const listed = await request(port, 'GET', '/api/v1/locations', undefined, token);
+    assert.equal(listed.payload.locations.filter((location) => location.isDefault).length, 1);
+    assert.equal(listed.payload.locations.find((location) => location.id === first.payload.location.id).isDefault, false);
+
+    const removed = await request(port, 'DELETE', `/api/v1/locations/${second.payload.location.id}`, undefined, token);
+    assert.equal(removed.status, 204);
+    const afterDelete = await request(port, 'GET', '/api/v1/locations', undefined, token);
+    assert.equal(afterDelete.payload.locations.length, 1);
+    assert.equal(afterDelete.payload.locations[0].id, first.payload.location.id);
+    assert.equal(afterDelete.payload.locations[0].isDefault, true);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('dashboard route forwards current weather to the AI recommendation service', async () => {
   resetMemoryStore();
   const originalFetch = global.fetch;

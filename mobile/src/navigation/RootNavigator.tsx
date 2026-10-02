@@ -28,6 +28,7 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { SafetyScreen } from '../screens/SafetyScreen';
 import { AuthScreen } from '../screens/AuthScreen';
 import { WeatherDetailsScreen } from '../screens/WeatherDetailsScreen';
+import { SavedLocationsScreen } from '../screens/SavedLocationsScreen';
 
 import { COLORS, TYPOGRAPHY } from '../constants/theme';
 
@@ -55,6 +56,7 @@ export type TravelMapStackParamList = {
 
 export type ProfileStackParamList = {
   ProfileHome: undefined;
+  SavedLocations: undefined;
   Plants: undefined;
   Assistant: undefined;
 };
@@ -118,6 +120,7 @@ function ProfileNavigator({ onLogout }: { onLogout: () => void }) {
       <ProfileStack.Screen name="ProfileHome" options={{ title: 'Profile & Settings' }}>
         {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
       </ProfileStack.Screen>
+      <ProfileStack.Screen name="SavedLocations" component={SavedLocationsScreen} options={{ title: 'Saved Locations' }} />
       <ProfileStack.Screen name="Plants" component={PlantsScreen} options={{ title: 'Plant Care' }} />
       <ProfileStack.Screen name="Assistant" component={AIAssistantScreen} options={{ title: 'AI Assistant' }} />
     </ProfileStack.Navigator>

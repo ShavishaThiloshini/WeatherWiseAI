@@ -90,7 +90,18 @@ async function listLocations(userId) {
     const [rows] = await database.query('SELECT id, label, latitude, longitude, timezone, is_default AS isDefault, created_at AS createdAt FROM locations WHERE user_id = ? ORDER BY is_default DESC, created_at ASC', [userId]);
     return rows;
   }
-  return memoryStore.locations.filter((location) => location.user_id === userId);
+  return memoryStore.locations
+    .filter((location) => location.user_id === userId)
+    .sort((left, right) => Number(right.is_default) - Number(left.is_default) || left.created_at.localeCompare(right.created_at))
+    .map((location) => ({
+      id: location.id,
+      label: location.label,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      timezone: location.timezone,
+      isDefault: location.is_default,
+      createdAt: location.created_at,
+    }));
 }
 
 async function createLocation(userId, location) {
@@ -106,25 +117,124 @@ async function createLocation(userId, location) {
   };
   const database = getPool();
   if (database) {
-    await database.execute('INSERT INTO locations (id, user_id, label, latitude, longitude, timezone, is_default) VALUES (?, ?, ?, ?, ?, ?, ?)', [record.id, record.user_id, record.label, record.latitude, record.longitude, record.timezone, record.is_default]);
-    return { ...record, isDefault: record.is_default, createdAt: record.created_at };
+    const connection = await database.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [existing] = await connection.query('SELECT id FROM locations WHERE user_id = ? LIMIT 1', [userId]);
+      record.is_default = record.is_default || existing.length === 0;
+      if (record.is_default) {
+        await connection.execute('UPDATE locations SET is_default = FALSE WHERE user_id = ?', [userId]);
+      }
+      await connection.execute('INSERT INTO locations (id, user_id, label, latitude, longitude, timezone, is_default) VALUES (?, ?, ?, ?, ?, ?, ?)', [record.id, record.user_id, record.label, record.latitude, record.longitude, record.timezone, record.is_default]);
+      await connection.commit();
+      return { id: record.id, label: record.label, latitude: record.latitude, longitude: record.longitude, timezone: record.timezone, isDefault: record.is_default, createdAt: record.created_at };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
-  if (record.is_default) {
+  if (record.is_default || !memoryStore.locations.some((item) => item.user_id === userId)) {
     memoryStore.locations.filter((item) => item.user_id === userId).forEach((item) => { item.is_default = false; });
+    record.is_default = true;
   }
   memoryStore.locations.push(record);
-  return { ...record, isDefault: record.is_default, createdAt: record.created_at };
+  return { id: record.id, label: record.label, latitude: record.latitude, longitude: record.longitude, timezone: record.timezone, isDefault: record.is_default, createdAt: record.created_at };
+}
+
+async function updateLocation(userId, locationId, updates) {
+  const database = getPool();
+  if (database) {
+    if (updates.isDefault) {
+      const connection = await database.getConnection();
+      try {
+        await connection.beginTransaction();
+        const [locations] = await connection.query('SELECT id FROM locations WHERE id = ? AND user_id = ? LIMIT 1', [locationId, userId]);
+        if (locations.length === 0) {
+          await connection.rollback();
+          return null;
+        }
+        await connection.execute('UPDATE locations SET is_default = FALSE WHERE user_id = ?', [userId]);
+        if (updates.label !== undefined) {
+          await connection.execute('UPDATE locations SET label = ?, is_default = TRUE WHERE id = ? AND user_id = ?', [updates.label, locationId, userId]);
+        } else {
+          await connection.execute('UPDATE locations SET is_default = TRUE WHERE id = ? AND user_id = ?', [locationId, userId]);
+        }
+        await connection.commit();
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
+    } else if (updates.label !== undefined) {
+      const [result] = await database.execute('UPDATE locations SET label = ? WHERE id = ? AND user_id = ?', [updates.label, locationId, userId]);
+      if (result.affectedRows === 0) {
+        const [existing] = await database.query('SELECT id FROM locations WHERE id = ? AND user_id = ? LIMIT 1', [locationId, userId]);
+        if (existing.length === 0) return null;
+      }
+    }
+    const locations = await listLocations(userId);
+    return locations.find((location) => String(location.id) === String(locationId)) || null;
+  }
+
+  const location = memoryStore.locations.find((item) => item.id === locationId && item.user_id === userId);
+  if (!location) return null;
+  if (updates.label !== undefined) location.label = updates.label;
+  if (updates.isDefault) {
+    memoryStore.locations
+      .filter((item) => item.user_id === userId)
+      .forEach((item) => { item.is_default = item.id === locationId; });
+  }
+  return {
+    id: location.id,
+    label: location.label,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    timezone: location.timezone,
+    isDefault: location.is_default,
+    createdAt: location.created_at,
+  };
 }
 
 async function deleteLocation(userId, locationId) {
   const database = getPool();
   if (database) {
-    const [result] = await database.execute('DELETE FROM locations WHERE id = ? AND user_id = ?', [locationId, userId]);
-    return result.affectedRows > 0;
+    const connection = await database.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [locations] = await connection.query('SELECT is_default AS isDefault FROM locations WHERE id = ? AND user_id = ? LIMIT 1', [locationId, userId]);
+      if (locations.length === 0) {
+        await connection.rollback();
+        return false;
+      }
+      await connection.execute('DELETE FROM locations WHERE id = ? AND user_id = ?', [locationId, userId]);
+      if (locations[0].isDefault) {
+        const [remaining] = await connection.query('SELECT id FROM locations WHERE user_id = ? ORDER BY created_at ASC LIMIT 1', [userId]);
+        if (remaining.length > 0) {
+          await connection.execute('UPDATE locations SET is_default = TRUE WHERE id = ? AND user_id = ?', [remaining[0].id, userId]);
+        }
+      }
+      await connection.commit();
+      return true;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
   const index = memoryStore.locations.findIndex((location) => location.id === locationId && location.user_id === userId);
   if (index === -1) return false;
+  const wasDefault = memoryStore.locations[index].is_default;
   memoryStore.locations.splice(index, 1);
+  if (wasDefault) {
+    const nextDefault = memoryStore.locations
+      .filter((location) => location.user_id === userId)
+      .sort((left, right) => left.created_at.localeCompare(right.created_at))[0];
+    if (nextDefault) nextDefault.is_default = true;
+  }
   return true;
 }
 
@@ -183,6 +293,7 @@ module.exports = {
   createLocation,
   databaseConfigured,
   deleteLocation,
+  updateLocation,
   initializeDatabase,
   listLocations,
   memoryStore,

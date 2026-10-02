@@ -159,8 +159,14 @@ export function ProfileScreen({ navigation, onLogout }: Props) {
         </PreferenceSection>
 
         <PreferenceSection title="Location Settings">
-           {/* Navigation to external feature screens */}
-           <Pressable style={styles.preferenceItem} onPress={() => navigation.navigate('Plants')}>
+          <Pressable style={styles.preferenceItem} onPress={() => navigation.navigate('SavedLocations')}>
+            <View>
+              <Text style={styles.preferenceLabel}>Saved Locations</Text>
+              <Text style={styles.preferenceHint}>Manage places and default forecast</Text>
+            </View>
+            <Text style={styles.navArrow}>›</Text>
+          </Pressable>
+          <Pressable style={styles.preferenceItem} onPress={() => navigation.navigate('Plants')}>
             <Text style={styles.preferenceLabel}>Plant Care Settings</Text>
             <Text style={styles.navArrow}>›</Text>
           </Pressable>
@@ -278,6 +284,11 @@ const styles = StyleSheet.create({
   preferenceLabel: {
     fontSize: TYPOGRAPHY.fontSize.m,
     color: COLORS.textPrimary,
+  },
+  preferenceHint: {
+    fontSize: TYPOGRAPHY.fontSize.xs,
+    color: COLORS.textSecondary,
+    marginTop: 4,
   },
   selectorValueContainer: {
     backgroundColor: COLORS.background,

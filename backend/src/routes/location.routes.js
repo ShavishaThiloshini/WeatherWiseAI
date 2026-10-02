@@ -1,6 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
-const { createLocation, deleteLocation, listLocations } = require('../db');
+const { createLocation, deleteLocation, listLocations, updateLocation } = require('../db');
 
 const router = express.Router();
 
@@ -22,6 +22,26 @@ router.post('/', async (req, res, next) => {
     }
     const location = await createLocation(req.user.id, { label, latitude, longitude, timezone, isDefault });
     return res.status(201).json({ location });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.patch('/:id', async (req, res, next) => {
+  try {
+    const { label, isDefault } = req.body || {};
+    if ((label !== undefined && (typeof label !== 'string' || !label.trim())) || (isDefault !== undefined && isDefault !== true)) {
+      return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Provide a non-empty label and/or set isDefault to true' } });
+    }
+    if (label === undefined && isDefault === undefined) {
+      return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'At least one location update is required' } });
+    }
+    const location = await updateLocation(req.user.id, req.params.id, {
+      ...(label !== undefined ? { label: label.trim() } : {}),
+      ...(isDefault === true ? { isDefault: true } : {}),
+    });
+    if (!location) return res.status(404).json({ error: { code: 'LOCATION_NOT_FOUND', message: 'Location not found' } });
+    return res.json({ location });
   } catch (error) {
     return next(error);
   }

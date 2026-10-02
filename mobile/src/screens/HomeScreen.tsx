@@ -17,7 +17,7 @@
 
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../components/ScreenContainer';
@@ -34,7 +34,7 @@ import { SevereWeatherAlerts } from '../components/SevereWeatherAlerts';
 import type { ActivityRecommendation } from '../components/ActivityRecommendationCard';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommendationForecast, getHeatWarningData, getSevereWeatherAlerts } from '../services/weatherService';
-import { getCurrentLocation } from '../services/locationService';
+import { getCurrentLocation, listSavedLocations } from '../services/locationService';
 import type { ForecastData, LocationData, RecommendationResponse, WeatherData, HeatData, SevereWeatherData } from '../types';
 import type { RootStackParamList, RootTabParamList } from '../navigation/RootNavigator';
 import { buildFallbackSmartAdviceCards, findSmartAdviceCards } from '../utils/smartAdvice';
@@ -148,16 +148,42 @@ export function HomeScreen() {
 
   const loadLocation = React.useCallback(async () => {
     setLocationError(null);
+    let savedLocationsUnavailable = false;
+    try {
+      const savedLocations = await listSavedLocations();
+      const defaultLocation = savedLocations.find((savedLocation) => savedLocation.isDefault);
+      if (defaultLocation) {
+        setLocation({
+          latitude: defaultLocation.latitude,
+          longitude: defaultLocation.longitude,
+          city: defaultLocation.label,
+          region: '',
+          country: '',
+          displayName: defaultLocation.label,
+        });
+        return;
+      }
+    } catch {
+      savedLocationsUnavailable = true;
+    }
     try {
       setLocation(await getCurrentLocation());
+      if (savedLocationsUnavailable) {
+        setLocationError('Saved locations could not be loaded. Showing your current location instead.');
+      }
     } catch (error) {
-      setLocationError(error instanceof Error ? error.message : 'Unable to determine your location.');
+      const locationMessage = error instanceof Error ? error.message : 'Unable to determine your location.';
+      setLocationError(savedLocationsUnavailable
+        ? `Saved locations could not be loaded. ${locationMessage}`
+        : locationMessage);
     }
   }, []);
 
-  React.useEffect(() => {
-    void loadLocation();
-  }, [loadLocation]);
+  useFocusEffect(
+    React.useCallback(() => {
+      void loadLocation();
+    }, [loadLocation]),
+  );
 
   const loadWeather = React.useCallback(async (nextLocation: LocationData) => {
     setIsWeatherLoading(true);

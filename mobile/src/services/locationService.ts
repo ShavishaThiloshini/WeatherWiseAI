@@ -76,12 +76,25 @@ export async function getCurrentLocation(): Promise<LocationData> {
 }
 
 export interface SavedLocation {
-  id: number;
+  id: number | string;
   label: string;
   latitude: number;
   longitude: number;
   timezone: string;
-  is_default: boolean;
+  isDefault: boolean;
+  createdAt?: string;
+}
+
+export interface PlaceSearchResult {
+  label: string;
+  latitude: number;
+  longitude: number;
+}
+
+interface NominatimSearchResult {
+  display_name: string;
+  lat: string;
+  lon: string;
 }
 
 export async function listSavedLocations(): Promise<SavedLocation[]> {
@@ -89,10 +102,45 @@ export async function listSavedLocations(): Promise<SavedLocation[]> {
   return response.locations;
 }
 
-export async function saveLocation(location: Omit<SavedLocation, 'id'>): Promise<SavedLocation> {
+export async function searchPlaces(query: string): Promise<PlaceSearchResult[]> {
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(query)}`,
+    { headers: { Accept: 'application/json' } },
+  );
+  if (!response.ok) throw new Error('Place search is unavailable right now. Please try again.');
+  const results = (await response.json()) as NominatimSearchResult[];
+  return results.map((result) => ({
+    label: result.display_name,
+    latitude: Number(result.lat),
+    longitude: Number(result.lon),
+  }));
+}
+
+export async function saveLocation(location: Omit<SavedLocation, 'id' | 'createdAt'>): Promise<SavedLocation> {
   const response = await apiFetch<{ location: SavedLocation }>('/locations', {
     method: 'POST',
-    body: JSON.stringify({ ...location, is_default: location.is_default }),
+    body: JSON.stringify({
+      label: location.label,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      timezone: location.timezone,
+      isDefault: location.isDefault,
+    }),
   });
   return response.location;
+}
+
+export async function updateSavedLocation(
+  id: SavedLocation['id'],
+  updates: { label?: string; isDefault?: true },
+): Promise<SavedLocation> {
+  const response = await apiFetch<{ location: SavedLocation }>(`/locations/${encodeURIComponent(String(id))}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+  return response.location;
+}
+
+export async function deleteSavedLocation(id: SavedLocation['id']): Promise<void> {
+  await apiFetch<void>(`/locations/${encodeURIComponent(String(id))}`, { method: 'DELETE' });
 }
