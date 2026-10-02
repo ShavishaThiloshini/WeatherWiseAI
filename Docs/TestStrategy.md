@@ -182,7 +182,7 @@ Test case IDs are stable and should be reused in Postman, automated tests, and d
 | TC-019 | FR-10 | P0 | Test wind below, at, and above the configured threshold. Strong-wind guidance and activity/travel risk are correct at the boundary. |
 | TC-020 | FR-11 | P0 | Test cold below, at, and above the configured threshold. Warm-clothing guidance is correct and respects the user's cold-tolerance preference. |
 | TC-021 | FR-13 | P1 | Calculate walking, running, and cycling scores for safe, marginal, and unsafe conditions. Scores, factors, and best-time suggestion are consistent and explainable. |
-| TC-022 | FR-20 | P1 | Change activity, time, units, and cold-tolerance preferences. The dashboard and advice reflect the saved values without changing another user's results. |
+| TC-022 | FR-20 | P1 | Change theme, units, cold-tolerance, preferred activity, and notifications. Values cycle/toggle only through supported options, persist after reopening Profile, and invalid or missing stored values fall back to defaults. |
 
 ### 8.4 Travel, plants, map, notifications, and history
 

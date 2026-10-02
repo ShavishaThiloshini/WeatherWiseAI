@@ -1,10 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, Switch, ScrollView, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { COLORS, SPACING, TYPOGRAPHY, SHADOWS } from '../constants/theme';
 import type { ProfileStackParamList } from '../navigation/RootNavigator';
 import { getCurrentUser, AuthResponse } from '../services/authService';
+import {
+  DEFAULT_USER_PREFERENCES,
+  PREFERENCE_OPTIONS,
+  USER_PREFERENCES_STORAGE_KEY,
+  cyclePreferenceOption,
+  parseUserPreferences,
+  serializeUserPreferences,
+  updateUserPreference,
+  type UserPreferences,
+} from '../utils/userPreferences';
 
 type Props = NativeStackScreenProps<ProfileStackParamList, 'ProfileHome'> & {
   onLogout?: () => void;
@@ -37,13 +48,14 @@ function PreferenceSection({ title, children }: { title: string; children: React
   );
 }
 
-function PreferenceToggle({ label, value, onValueChange }: { label: string; value: boolean; onValueChange: (val: boolean) => void }) {
+function PreferenceToggle({ label, value, onValueChange, disabled = false }: { label: string; value: boolean; onValueChange: (val: boolean) => void; disabled?: boolean }) {
   return (
     <View style={styles.preferenceItem}>
       <Text style={styles.preferenceLabel}>{label}</Text>
       <Switch
         value={value}
         onValueChange={onValueChange}
+        disabled={disabled}
         trackColor={{ false: COLORS.border, true: COLORS.primary }}
         thumbColor={COLORS.white}
       />
@@ -51,16 +63,13 @@ function PreferenceToggle({ label, value, onValueChange }: { label: string; valu
   );
 }
 
-function PreferenceSelector({ label, value, options, onSelect }: { label: string; value: string; options: string[]; onSelect: (val: string) => void }) {
-  // Simple cyclic selector for this demo, tapping it cycles through options
+function PreferenceSelector<T extends string>({ label, value, options, onSelect, disabled = false }: { label: string; value: T; options: readonly T[]; onSelect: (val: T) => void; disabled?: boolean }) {
   const handlePress = () => {
-    const currentIndex = options.indexOf(value);
-    const nextIndex = (currentIndex + 1) % options.length;
-    onSelect(options[nextIndex]);
+    onSelect(cyclePreferenceOption(value, options));
   };
 
   return (
-    <Pressable style={styles.preferenceItem} onPress={handlePress}>
+    <Pressable disabled={disabled} style={[styles.preferenceItem, disabled && styles.preferenceDisabled]} onPress={handlePress}>
       <Text style={styles.preferenceLabel}>{label}</Text>
       <View style={styles.selectorValueContainer}>
         <Text style={styles.selectorValueText}>{value}</Text>
@@ -83,13 +92,11 @@ export function ProfileScreen({ navigation, onLogout }: Props) {
   const [user, setUser] = useState<AuthResponse['user'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Preference States
-  const [units, setUnits] = useState('Metric');
-  const [coldTolerance, setColdTolerance] = useState('Medium');
-  const [preferredActivity, setPreferredActivity] = useState('Walking');
-  const [notifications, setNotifications] = useState(true);
-  const [theme, setTheme] = useState('System');
+  const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES);
+  const [preferencesReady, setPreferencesReady] = useState(false);
+  const [preferenceError, setPreferenceError] = useState<string | null>(null);
+  const preferencesRef = useRef(preferences);
+  const saveQueue = useRef(Promise.resolve());
 
   const fetchUser = async () => {
     try {
@@ -107,6 +114,42 @@ export function ProfileScreen({ navigation, onLogout }: Props) {
   useEffect(() => {
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(USER_PREFERENCES_STORAGE_KEY)
+      .then((stored) => {
+        if (!active) return;
+        const loaded = parseUserPreferences(stored);
+        preferencesRef.current = loaded;
+        setPreferences(loaded);
+      })
+      .catch((storageError: unknown) => {
+        if (active) {
+          setPreferenceError(storageError instanceof Error ? storageError.message : 'Could not load your preferences.');
+        }
+      })
+      .finally(() => {
+        if (active) setPreferencesReady(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const setPreference = <K extends keyof UserPreferences,>(key: K, value: UserPreferences[K]) => {
+    const updated = updateUserPreference(preferencesRef.current, key, value);
+    preferencesRef.current = updated;
+    setPreferences(updated);
+    setPreferenceError(null);
+    if (!preferencesReady) return;
+    saveQueue.current = saveQueue.current
+      .catch(() => undefined)
+      .then(() => AsyncStorage.setItem(USER_PREFERENCES_STORAGE_KEY, serializeUserPreferences(updated)))
+      .catch((storageError: unknown) => {
+        setPreferenceError(storageError instanceof Error ? storageError.message : 'Could not save your preferences.');
+      });
+  };
 
   return (
     <ScreenContainer>
@@ -131,30 +174,34 @@ export function ProfileScreen({ navigation, onLogout }: Props) {
         <PreferenceSection title="App Preferences">
           <PreferenceSelector 
             label="Theme" 
-            value={theme} 
-            options={['System', 'Light', 'Dark']} 
-            onSelect={setTheme} 
+            value={preferences.theme}
+            options={PREFERENCE_OPTIONS.theme}
+            onSelect={(value) => setPreference('theme', value)}
+            disabled={!preferencesReady}
           />
           <PreferenceSelector 
             label="Units" 
-            value={units} 
-            options={['Metric', 'Imperial']} 
-            onSelect={setUnits} 
+            value={preferences.units}
+            options={PREFERENCE_OPTIONS.units}
+            onSelect={(value) => setPreference('units', value)}
+            disabled={!preferencesReady}
           />
         </PreferenceSection>
 
         <PreferenceSection title="Personalization">
           <PreferenceSelector 
             label="Cold Tolerance" 
-            value={coldTolerance} 
-            options={['Low', 'Medium', 'High']} 
-            onSelect={setColdTolerance} 
+            value={preferences.coldTolerance}
+            options={PREFERENCE_OPTIONS.coldTolerance}
+            onSelect={(value) => setPreference('coldTolerance', value)}
+            disabled={!preferencesReady}
           />
           <PreferenceSelector 
             label="Preferred Activity" 
-            value={preferredActivity} 
-            options={['Walking', 'Running', 'Cycling']} 
-            onSelect={setPreferredActivity} 
+            value={preferences.preferredActivity}
+            options={PREFERENCE_OPTIONS.preferredActivity}
+            onSelect={(value) => setPreference('preferredActivity', value)}
+            disabled={!preferencesReady}
           />
         </PreferenceSection>
 
@@ -175,10 +222,16 @@ export function ProfileScreen({ navigation, onLogout }: Props) {
         <PreferenceSection title="Notifications">
           <PreferenceToggle 
             label="Enable Notifications" 
-            value={notifications} 
-            onValueChange={setNotifications} 
+            value={preferences.notifications}
+            onValueChange={(value) => setPreference('notifications', value)}
+            disabled={!preferencesReady}
           />
         </PreferenceSection>
+        {preferenceError && (
+          <Text accessibilityRole="alert" style={styles.preferenceError}>
+            Preference storage issue: {preferenceError}
+          </Text>
+        )}
 
         <PreferenceSection title="Account">
           {onLogout && (
@@ -281,6 +334,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
+  preferenceDisabled: {
+    opacity: 0.6,
+  },
   preferenceLabel: {
     fontSize: TYPOGRAPHY.fontSize.m,
     color: COLORS.textPrimary,
@@ -289,6 +345,11 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.fontSize.xs,
     color: COLORS.textSecondary,
     marginTop: 4,
+  },
+  preferenceError: {
+    color: COLORS.danger,
+    fontSize: TYPOGRAPHY.fontSize.s,
+    marginBottom: SPACING.m,
   },
   selectorValueContainer: {
     backgroundColor: COLORS.background,
