@@ -48,3 +48,8 @@ def assistant(body: AssistantRequest) -> dict[str, Any]:
         "recommendations": recommendation.get("recommendations", []),
         "analysis": recommendation.get("analysis"),
     }
+
+@app.post("/history/trends")
+def history_trends(payload: dict[str, Any]) -> dict[str, Any]:
+    from engine.history import analyze_weather_trends
+    return analyze_weather_trends(payload)
