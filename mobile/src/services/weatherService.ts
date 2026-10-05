@@ -65,24 +65,32 @@ function conditionFromProvider(value: unknown): WeatherData['condition'] {
     : 'unknown';
 }
 
-/** Fetches and normalizes the current weather for the given coordinates. */
 export async function getCurrentWeather(
   latitude: number,
   longitude: number,
 ): Promise<WeatherData> {
-  const query = new URLSearchParams({
-    latitude: String(latitude),
-    longitude: String(longitude),
-    current: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,uv_index',
-    hourly: 'precipitation_probability,visibility',
-    forecast_days: '1',
-    timezone: 'auto',
-  });
   try {
-    const response = await fetch(`${WEATHER_API_URL}?${query.toString()}`);
-    if (!response.ok) throw new Error(`Weather service returned ${response.status}.`);
-    const data = (await response.json()) as OpenMeteoCurrentResponse;
-    const weather = normalizeCurrentWeather(data);
+    const response = await apiFetch<any>(`/weather/current?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`);
+    
+    // Convert degrees to compass direction using the same logic as weatherNormalization
+    const degrees = response.current.wind_direction_degrees;
+    const normalizedDegrees = Number.isFinite(degrees) ? ((degrees % 360) + 360) % 360 : 0;
+    const windDirection = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(normalizedDegrees / 45) % 8];
+
+    const weather: WeatherData = {
+      temperatureC: response.current.temperature_c,
+      feelsLikeC: response.current.feels_like_c,
+      condition: response.current.condition,
+      conditionLabel: response.current.conditionLabel,
+      humidity: response.current.humidity_percent,
+      windSpeedKmh: response.current.wind_speed_kmh,
+      windDirection: windDirection,
+      uvIndex: response.current.uv_index,
+      rainProbability: response.current.rain_probability_percent,
+      visibilityKm: response.current.visibility_km,
+      timestamp: response.current.observed_at,
+    };
+
     await writeCached(cacheKey('current', latitude, longitude), weather);
     return weather;
   } catch (error) {
