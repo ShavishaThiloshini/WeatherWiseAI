@@ -9,6 +9,7 @@ const { requireAuth } = require('../middleware/auth');
 const { getCurrentWeather } = require('../services/weather.service');
 const { assessDestinationWeather } = require('../services/travel-risk.service');
 const { getDashboardRecommendations } = require('../services/recommendation.service');
+const { getAssistantAnswer } = require('../services/assistant.service');
 
 const router = express.Router();
 
@@ -105,6 +106,27 @@ router.post('/dashboard', requireAuth, async (req, res, next) => {
     }
     const response = await getDashboardRecommendations({ location, current, forecast });
     return res.json(response);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/ai/assistant', requireAuth, async (req, res, next) => {
+  try {
+    const { question, weather } = req.body || {};
+    if (typeof question !== 'string' || !question.trim() || question.trim().length > 300) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: 'Question must be between 1 and 300 characters' },
+      });
+    }
+    if (!weather || typeof weather !== 'object' || Array.isArray(weather)
+      || !weather.location || typeof weather.location !== 'object' || Array.isArray(weather.location)
+      || !weather.current || typeof weather.current !== 'object' || Array.isArray(weather.current)) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: 'Location and current weather are required' },
+      });
+    }
+    return res.json(await getAssistantAnswer(question.trim(), weather));
   } catch (error) {
     return next(error);
   }
