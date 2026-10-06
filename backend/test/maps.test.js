@@ -167,12 +167,14 @@ test('map weather combines its center with normalized cached provider weather', 
   try {
     const token = await register(port);
     const result = await request('GET', '/api/v1/maps/weather?lat=6.9271&lon=79.8612', undefined, token, port);
+    const cachedResult = await request('GET', '/api/v1/maps/weather?lat=6.9271&lon=79.8612', undefined, token, port);
     assert.equal(result.status, 200);
     assert.deepEqual(result.payload.center, { latitude: 6.9271, longitude: 79.8612 });
     assert.equal(result.payload.current.temperature_c, 31.5);
     assert.equal(result.payload.hourlyForecast[0].rainProbability, 75);
     assert.equal(result.payload.timezone, 'Asia/Colombo');
     assert.equal(result.payload.cached, false);
+    assert.equal(cachedResult.payload.cached, true);
     assert.equal(providerCalls, 1);
   } finally {
     global.fetch = originalFetch;
