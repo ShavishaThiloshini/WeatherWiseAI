@@ -58,6 +58,10 @@ factors, and indexes for user, location, cache, alert, and conversation reads.
 AI/dashboard requests must include either an owned `location_id` or a `location` object,
 plus a `current` weather object. Live weather is supplied by the weather provider adapter.
 Maps requests use Nominatim by default; configure `MAP_PROVIDER_USER_AGENT` for the
-deployment and keep provider calls server-side. Place and weather responses are cached.
+deployment and keep provider calls server-side. Weather requests use Open-Meteo by
+default and share a normalized response cache across current, forecast, travel, and
+map-weather endpoints. Configure `WEATHER_PROVIDER_URL`,
+`WEATHER_PROVIDER_TIMEOUT_MS`, and `WEATHER_CACHE_TTL_MS` to tune the provider
+connection and cache freshness. Map search/reverse-geocoding responses are also cached.
 
 The API is versioned under `/api/v1` and uses a routes/controllers/middleware structure described in the TRD.

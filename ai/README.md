@@ -19,7 +19,7 @@ The deterministic recommendation endpoint works without an API key:
 Invoke-RestMethod -Method Post -Uri http://localhost:8001/recommend -ContentType 'application/json' -Body '{"temperature":36,"uv_index":9,"rain_probability":10,"wind_speed":8,"condition":"clear"}'
 ```
 
-Gemini is optional. Add `GEMINI_API_KEY` to `.env` to enable `/assistant`. The key must remain server-side and must not be committed.
+`/assistant` uses the deterministic weather rules and the live current/hourly/daily weather context supplied by the backend. It answers common rain, temperature, UV, wind, clothing, activity, and forecast questions without requiring an external model API key. Answers explicitly state when the requested weather field is unavailable.
 
 ## Endpoints
 

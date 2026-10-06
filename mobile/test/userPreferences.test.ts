@@ -50,6 +50,44 @@ test('updating a preference preserves other values without mutating the previous
   assert.equal(original.preferredActivity, 'Walking');
 });
 
+test('each preference can be changed independently while preserving the other selections', () => {
+  const original = {
+    theme: 'Dark',
+    units: 'Imperial',
+    coldTolerance: 'High',
+    preferredActivity: 'Running',
+    notifications: false,
+  } as const;
+
+  assert.deepEqual(updateUserPreference(original, 'theme', 'Light'), {
+    ...original,
+    theme: 'Light',
+  });
+  assert.deepEqual(updateUserPreference(original, 'units', 'Metric'), {
+    ...original,
+    units: 'Metric',
+  });
+  assert.deepEqual(updateUserPreference(original, 'coldTolerance', 'Low'), {
+    ...original,
+    coldTolerance: 'Low',
+  });
+  assert.deepEqual(updateUserPreference(original, 'preferredActivity', 'Cycling'), {
+    ...original,
+    preferredActivity: 'Cycling',
+  });
+  assert.deepEqual(updateUserPreference(original, 'notifications', true), {
+    ...original,
+    notifications: true,
+  });
+  assert.deepEqual(original, {
+    theme: 'Dark',
+    units: 'Imperial',
+    coldTolerance: 'High',
+    preferredActivity: 'Running',
+    notifications: false,
+  });
+});
+
 test('all user preference choices and notification state survive serialization', () => {
   const selected = {
     theme: 'Dark',
@@ -62,10 +100,28 @@ test('all user preference choices and notification state survive serialization',
   assert.deepEqual(parseUserPreferences(serializeUserPreferences(selected)), selected);
 });
 
+test('every supported preference combination survives save and reload', () => {
+  for (const theme of PREFERENCE_OPTIONS.theme) {
+    for (const units of PREFERENCE_OPTIONS.units) {
+      for (const coldTolerance of PREFERENCE_OPTIONS.coldTolerance) {
+        for (const preferredActivity of PREFERENCE_OPTIONS.preferredActivity) {
+          for (const notifications of [true, false]) {
+            const preferences = { theme, units, coldTolerance, preferredActivity, notifications };
+            assert.deepEqual(parseUserPreferences(serializeUserPreferences(preferences)), preferences);
+          }
+        }
+      }
+    }
+  }
+});
+
 test('missing or malformed stored preferences fall back to defaults', () => {
   assert.deepEqual(parseUserPreferences(null), DEFAULT_USER_PREFERENCES);
   assert.deepEqual(parseUserPreferences('{not-json'), DEFAULT_USER_PREFERENCES);
   assert.deepEqual(parseUserPreferences('null'), DEFAULT_USER_PREFERENCES);
+  assert.deepEqual(parseUserPreferences(JSON.stringify([])), DEFAULT_USER_PREFERENCES);
+  assert.deepEqual(parseUserPreferences(JSON.stringify('Metric')), DEFAULT_USER_PREFERENCES);
+  assert.deepEqual(parseUserPreferences(JSON.stringify(42)), DEFAULT_USER_PREFERENCES);
 });
 
 test('invalid stored values fall back independently while valid preferences remain intact', () => {
@@ -81,5 +137,17 @@ test('invalid stored values fall back independently while valid preferences rema
     coldTolerance: DEFAULT_USER_PREFERENCES.coldTolerance,
     preferredActivity: 'Cycling',
     notifications: DEFAULT_USER_PREFERENCES.notifications,
+  });
+});
+
+test('missing fields and unknown fields in stored data preserve defaults for missing preferences', () => {
+  assert.deepEqual(parseUserPreferences(JSON.stringify({
+    units: 'Imperial',
+    preferredActivity: 'Cycling',
+    legacyPreference: true,
+  })), {
+    ...DEFAULT_USER_PREFERENCES,
+    units: 'Imperial',
+    preferredActivity: 'Cycling',
   });
 });

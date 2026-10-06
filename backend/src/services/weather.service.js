@@ -1,6 +1,7 @@
 const { fetchOpenMeteo, normalizeProviderPayload } = require('./weather-provider.service');
 const { assessDestinationWeather } = require('./travel-risk.service');
 
+const DEFAULT_WEATHER_CACHE_TTL_MS = 5 * 60 * 1000;
 const weatherCache = new Map();
 
 function cacheKey(latitude, longitude) {
@@ -13,18 +14,32 @@ function clearWeatherCache() {
   weatherCache.clear();
 }
 
+function weatherCacheTtl() {
+  const configuredTtl = Number(process.env.WEATHER_CACHE_TTL_MS);
+  return Number.isFinite(configuredTtl) && configuredTtl > 0
+    ? configuredTtl
+    : DEFAULT_WEATHER_CACHE_TTL_MS;
+}
+
 async function loadNormalizedWeather(latitude, longitude, options = {}) {
   const key = cacheKey(latitude, longitude);
   const shouldUseCache = options.useCache !== false;
 
   if (shouldUseCache && weatherCache.has(key)) {
     const cached = weatherCache.get(key);
-    return { ...cached, cached: true };
+    if (cached.expiresAt > Date.now()) {
+      return { ...cached.value, cached: true };
+    }
+    weatherCache.delete(key);
   }
 
   const payload = await fetchOpenMeteo(latitude, longitude);
   const normalized = normalizeProviderPayload(payload);
-  weatherCache.set(key, normalized);
+  const expiresAt = Date.now() + weatherCacheTtl();
+  for (const [cachedKey, cachedValue] of weatherCache) {
+    if (cachedValue.expiresAt <= Date.now()) weatherCache.delete(cachedKey);
+  }
+  weatherCache.set(key, { value: normalized, expiresAt });
 
   return { ...normalized, cached: false };
 }

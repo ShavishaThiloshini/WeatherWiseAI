@@ -87,14 +87,16 @@ export interface SavedLocation {
 
 export interface PlaceSearchResult {
   label: string;
+  name: string;
   latitude: number;
   longitude: number;
 }
 
-interface NominatimSearchResult {
-  display_name: string;
-  lat: string;
-  lon: string;
+interface MapSearchPlace {
+  name: string;
+  latitude: number;
+  longitude: number;
+  displayName: string;
 }
 
 export async function listSavedLocations(): Promise<SavedLocation[]> {
@@ -103,16 +105,19 @@ export async function listSavedLocations(): Promise<SavedLocation[]> {
 }
 
 export async function searchPlaces(query: string): Promise<PlaceSearchResult[]> {
-  const response = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(query)}`,
-    { headers: { Accept: 'application/json' } },
+  const normalizedQuery = query.trim();
+  if (normalizedQuery.length < 2 || normalizedQuery.length > 120) {
+    throw new Error('Search must be between 2 and 120 characters.');
+  }
+
+  const response = await apiFetch<{ places: MapSearchPlace[] }>(
+    `/maps/search?q=${encodeURIComponent(normalizedQuery)}`,
   );
-  if (!response.ok) throw new Error('Place search is unavailable right now. Please try again.');
-  const results = (await response.json()) as NominatimSearchResult[];
-  return results.map((result) => ({
-    label: result.display_name,
-    latitude: Number(result.lat),
-    longitude: Number(result.lon),
+  return response.places.map((place) => ({
+    label: place.displayName || place.name,
+    name: place.name,
+    latitude: place.latitude,
+    longitude: place.longitude,
   }));
 }
 

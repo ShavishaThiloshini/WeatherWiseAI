@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const app = require('../src/app');
 const { resetMemoryStore } = require('../src/db');
-const { clearWeatherCache } = require('../src/services/weather.service');
+const { clearWeatherCache, getCurrentWeather } = require('../src/services/weather.service');
 const { fetchOpenMeteo, normalizeProviderPayload } = require('../src/services/weather-provider.service');
 const { assessDestinationWeather } = require('../src/services/travel-risk.service');
 
@@ -266,6 +266,42 @@ test('weather endpoints fetch and cache normalized provider data', async () => {
   }
 });
 
+test('weather cache refreshes provider data after its configured TTL', async () => {
+  clearWeatherCache();
+  const originalFetch = global.fetch;
+  const originalNow = Date.now;
+  const originalTtl = process.env.WEATHER_CACHE_TTL_MS;
+  let now = 1_000;
+  let providerCalls = 0;
+  Date.now = () => now;
+  process.env.WEATHER_CACHE_TTL_MS = '100';
+  global.fetch = async () => {
+    providerCalls += 1;
+    return new Response(JSON.stringify(providerPayload), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  try {
+    const fresh = await getCurrentWeather(6.9271, 79.8612);
+    const cached = await getCurrentWeather(6.9271, 79.8612);
+    now += 100;
+    const refreshed = await getCurrentWeather(6.9271, 79.8612);
+
+    assert.equal(fresh.cached, false);
+    assert.equal(cached.cached, true);
+    assert.equal(refreshed.cached, false);
+    assert.equal(providerCalls, 2);
+  } finally {
+    global.fetch = originalFetch;
+    Date.now = originalNow;
+    if (originalTtl === undefined) delete process.env.WEATHER_CACHE_TTL_MS;
+    else process.env.WEATHER_CACHE_TTL_MS = originalTtl;
+    clearWeatherCache();
+  }
+});
+
 test('weather endpoint validates coordinates before contacting provider', async () => {
   resetMemoryStore();
   clearWeatherCache();
@@ -425,4 +461,3 @@ test('travel compare classifies low, moderate, and high destination weather risk
     await new Promise((resolve) => server.close(resolve));
   }
 });
-
