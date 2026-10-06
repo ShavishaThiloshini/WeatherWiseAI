@@ -3,10 +3,10 @@ const assert = require('node:assert/strict');
 const app = require('../src/app');
 const { resetMemoryStore } = require('../src/db');
 
-async function startServer(port) {
-  const server = app.listen(port);
+async function startServer() {
+  const server = app.listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
-  return server;
+  return { server, port: server.address().port };
 }
 
 async function request(port, method, path, body, token) {
@@ -31,8 +31,7 @@ async function register(port) {
 
 test('assistant endpoint requires authentication and validates question/weather input', async () => {
   resetMemoryStore();
-  const port = 3040;
-  const server = await startServer(port);
+  const { server, port } = await startServer();
   try {
     const unauthorized = await request(port, 'POST', '/api/v1/ai/assistant', {
       question: 'Will it rain?',
@@ -61,7 +60,7 @@ test('assistant endpoint requires authentication and validates question/weather 
 test('assistant endpoint forwards the question and live weather to AI service', async () => {
   resetMemoryStore();
   const originalFetch = global.fetch;
-  const port = 3041;
+  const { server, port } = await startServer();
   let forwarded;
   global.fetch = async (url, options) => {
     if (String(url).startsWith(`http://127.0.0.1:${port}`)) return originalFetch(url, options);
@@ -72,7 +71,6 @@ test('assistant endpoint forwards the question and live weather to AI service', 
       recommendations: [],
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
-  const server = await startServer(port);
   try {
     const token = await register(port);
     const weather = {
@@ -98,12 +96,11 @@ test('assistant endpoint forwards the question and live weather to AI service', 
 test('assistant endpoint returns an explicit unavailable error when AI service fails', async () => {
   resetMemoryStore();
   const originalFetch = global.fetch;
-  const port = 3042;
+  const { server, port } = await startServer();
   global.fetch = async (url, options) => {
     if (String(url).startsWith(`http://127.0.0.1:${port}`)) return originalFetch(url, options);
     throw new Error('AI offline');
   };
-  const server = await startServer(port);
   try {
     const token = await register(port);
     const result = await request(port, 'POST', '/api/v1/ai/assistant', {

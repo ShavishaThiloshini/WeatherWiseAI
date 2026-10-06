@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from engine.assistant import answer_weather_question
@@ -33,8 +33,6 @@ def map_interpret(payload: dict[str, Any]) -> dict[str, Any]:
 @app.post("/assistant")
 def assistant(body: AssistantRequest) -> dict[str, Any]:
     if not body.question.strip():
-        from fastapi import HTTPException
-
         raise HTTPException(status_code=422, detail="Question must not be blank.")
     return answer_weather_question(body.question, body.weather)
 

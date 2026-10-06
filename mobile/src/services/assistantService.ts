@@ -36,7 +36,7 @@ export async function askWeatherQuestion(
           uv_index: weather.uvIndex,
           rain_probability_percent: weather.rainProbability,
           visibility_km: weather.visibilityKm,
-          condition: weather.conditionLabel,
+          condition: weather.condition,
           observed_at: weather.timestamp,
         },
         ...(forecast ? {

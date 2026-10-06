@@ -40,7 +40,7 @@ def _question_answer(question: str, weather, result) -> str:
                 return "I don't have a daily rain forecast for tomorrow, so I can't reliably say whether you will need an umbrella."
             likelihood = "likely" if probability >= 60 else "possible" if probability >= 30 else "unlikely"
             advice = " Consider bringing an umbrella." if probability >= 40 else ""
-            return f"Tomorrow's forecast shows a {probability:.0f}% rain chance, so rain is {likelihood}.{advice}"
+            return f"For {location}, tomorrow's forecast shows a {probability:.0f}% rain chance, so rain is {likelihood}.{advice}"
 
         probability = weather.rain_probability_percent
         if probability is None:
@@ -52,23 +52,23 @@ def _question_answer(question: str, weather, result) -> str:
             "now": " Rain is indicated in the current conditions.",
         }.get(weather.rain_timing, "")
         advice = " Bring an umbrella." if probability >= 40 else ""
-        return f"There is a {probability:.0f}% rain chance, so rain is {likelihood}.{timing}{advice}"
+        return f"For {location}, there is a {probability:.0f}% rain chance, so rain is {likelihood}.{timing}{advice}"
 
     if any(word in text for word in ("uv", "sunburn", "sunscreen", "sun protection")):
         if weather.uv_index is None:
             return "I don't have a UV reading for this location right now."
         advice = " Use sun protection if you'll be outside." if weather.uv_index >= 6 else " UV is not currently in the high range."
-        return f"The current UV index is {weather.uv_index:g}.{advice}"
+        return f"In {location}, the current UV index is {weather.uv_index:g}.{advice}"
 
     if any(word in text for word in ("wind", "windy", "gust")):
         if weather.wind_speed_kmh is None:
             return "I don't have a current wind reading for this location."
-        return f"Current wind speed is {weather.wind_speed_kmh:g} km/h."
+        return f"In {location}, current wind speed is {weather.wind_speed_kmh:g} km/h."
 
     if any(word in text for word in ("temperature", "degrees", "hot", "cold", "feel like", "feels like")):
         if weather.temperature_c is None:
             return "I don't have a current temperature reading for this location."
-        answer = f"It's currently {weather.temperature_c:g}°C"
+        answer = f"In {location}, it's currently {weather.temperature_c:g}°C"
         if weather.feels_like_c is not None:
             answer += f", feeling like {weather.feels_like_c:g}°C"
         return answer + "."
@@ -80,10 +80,10 @@ def _question_answer(question: str, weather, result) -> str:
     if any(word in text for word in ("run", "running", "walk", "walking", "cycle", "cycling", "outside", "outdoor", "activity")):
         advice = _matching_recommendations(result, {"outdoor", "hydration", "umbrella"})
         if result.activity == "Avoid":
-            return "Outdoor activity is not recommended in these conditions. " + " ".join(advice)
+            return f"For {location}, outdoor activity is not recommended in these conditions. " + " ".join(advice)
         if result.activity == "Poor":
-            return "Outdoor activity may be uncomfortable or risky right now. " + " ".join(advice)
-        return f"Outdoor activity suitability is {result.activity.lower()}. " + " ".join(advice)
+            return f"For {location}, outdoor activity may be uncomfortable or risky right now. " + " ".join(advice)
+        return f"For {location}, outdoor activity suitability is {result.activity.lower()}. " + " ".join(advice)
 
     if any(word in text for word in ("forecast", "tomorrow", "week", "today")) and weather.forecast_days:
         day_index = 1 if "tomorrow" in text else 0

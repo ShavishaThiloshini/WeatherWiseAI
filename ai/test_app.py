@@ -59,7 +59,7 @@ def test_assistant_works_without_gemini_key(monkeypatch) -> None:
     )
     assert response.status_code == 200
     assert response.json()["source"] == "deterministic_rules"
-    assert "outdoor activity suitability" in response.json()["answer"]
+    assert "outdoor activity is not recommended" in response.json()["answer"].lower()
     assert "colombo" in response.json()["answer"].lower()
     assert response.json()["analysis"]["activity"]
 
@@ -132,7 +132,7 @@ def test_assistant_answers_temperature_questions_without_echoing_the_question() 
     )
 
     assert response.status_code == 200
-    assert response.json()["answer"] == "It's currently 25°C, feeling like 27°C."
+    assert response.json()["answer"] == "In Kandy, it's currently 25°C, feeling like 27°C."
     assert question not in response.json()["answer"]
 
 
