@@ -85,8 +85,8 @@ export function SavedLocationsScreen() {
 
   const searchForPlaces = async () => {
     const query = placeQuery.trim();
-    if (!query) {
-      setEditorError('Enter a city or address to search.');
+    if (query.length < 2 || query.length > 120) {
+      setEditorError('Search must be between 2 and 120 characters.');
       return;
     }
     setIsSearching(true);
@@ -124,7 +124,7 @@ export function SavedLocationsScreen() {
 
   const choosePlace = (place: PlaceSearchResult) => {
     setDraft(place);
-    setLabel(shortPlaceName(place.label));
+    setLabel(place.name || shortPlaceName(place.label));
     setEditorError(null);
   };
 
