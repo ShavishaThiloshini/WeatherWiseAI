@@ -148,6 +148,8 @@ def from_compact(
 ) -> WeatherSnapshot:
     limitations = list(extra_limitations or [])
     location = payload.get("location") if isinstance(payload.get("location"), dict) else payload
+    if not any(key in location for key in ("id", "label", "name", "latitude", "longitude", "timezone")):
+        limitations.append("location_missing")
     latitude = _coordinate(location.get("latitude"), -90, 90)
     longitude = _coordinate(location.get("longitude"), -180, 180)
     if location.get("latitude") is not None and latitude is None:
@@ -210,6 +212,8 @@ def from_envelope(payload: dict) -> WeatherSnapshot:
     forecast = payload.get("forecast")
     timing, forecast_rain, forecast_intensity, forecast_limits = _forecast_rain(forecast)
     limitations = list(forecast_limits)
+    if not any(key in location for key in ("id", "label", "name", "latitude", "longitude", "timezone")):
+        limitations.append("location_missing")
     latitude = _coordinate(location.get("latitude"), -90, 90)
     longitude = _coordinate(location.get("longitude"), -180, 180)
     if location.get("latitude") is not None and latitude is None:

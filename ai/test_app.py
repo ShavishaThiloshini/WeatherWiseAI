@@ -50,3 +50,29 @@ def test_assistant_works_without_gemini_key(monkeypatch) -> None:
     assert response.status_code == 200
     assert response.json()["source"] == "deterministic_rules"
     assert response.json()["answer"]
+
+
+def test_history_trends_endpoint_returns_personalized_location_summary() -> None:
+    response = client.post(
+        "/history/trends",
+        json={
+            "location": "Kandy",
+            "timeRange": "weekly",
+            "history": [
+                {"temperature": 36, "uvIndex": 9, "rainProbability": 70, "windSpeed": 42},
+                {"temperature": 37, "uvIndex": 10, "rainProbability": 80, "windSpeed": 45},
+                {"temperature": 38, "uvIndex": 8, "rainProbability": 60, "windSpeed": 47},
+                {"temperature": 39, "uvIndex": 9, "rainProbability": 75, "windSpeed": 50},
+                {"temperature": 40, "uvIndex": 10, "rainProbability": 85, "windSpeed": 52},
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["location"] == "Kandy"
+    assert payload["timeRange"] == "weekly"
+    assert payload["temperatureTrend"]["trend"] == "INCREASING"
+    assert payload["confidence"] == "HIGH"
+    assert "Repeated extreme heat" in payload["recurringRisks"]
+    assert payload["keyInsights"]

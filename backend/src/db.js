@@ -7,6 +7,7 @@ const memoryStore = {
   users: [],
   locations: [],
   alerts: [],
+  preferences: [],
 };
 
 let pool;
@@ -42,6 +43,7 @@ function resetMemoryStore() {
   memoryStore.users = [];
   memoryStore.locations = [];
   memoryStore.alerts = [];
+  memoryStore.preferences = [];
 }
 
 async function findUserByEmail(email) {
@@ -288,6 +290,145 @@ async function findAlertById(userId, alertId) {
   return alerts.find((alert) => alert.id === alertId) || null;
 }
 
+async function getUserPreferences(userId) {
+  const database = getPool();
+  if (database) {
+    const [rows] = await database.query('SELECT id, user_id AS userId, cold_tolerance AS coldTolerance, preferred_activity AS preferredActivity, preferred_activity_time AS preferredActivityTime, units, notifications_enabled AS notificationsEnabled FROM user_preferences WHERE user_id = ? LIMIT 1', [userId]);
+    if (!rows[0]) {
+      return {
+        userId,
+        coldTolerance: 'medium',
+        preferredActivity: null,
+        preferredActivityTime: null,
+        units: 'metric',
+        notificationsEnabled: true,
+      };
+    }
+    return rows[0];
+  }
+
+  const existing = memoryStore.preferences.find((pref) => pref.user_id === userId);
+  if (existing) {
+    return {
+      id: existing.id,
+      userId: existing.user_id,
+      coldTolerance: existing.cold_tolerance,
+      preferredActivity: existing.preferred_activity,
+      preferredActivityTime: existing.preferred_activity_time,
+      units: existing.units,
+      notificationsEnabled: existing.notifications_enabled,
+    };
+  }
+
+  return {
+    userId,
+    coldTolerance: 'medium',
+    preferredActivity: null,
+    preferredActivityTime: null,
+    units: 'metric',
+    notificationsEnabled: true,
+  };
+}
+
+async function upsertUserPreferences(userId, updates) {
+  const allowedColdTolerance = new Set(['low', 'medium', 'high']);
+  const allowedUnits = new Set(['metric', 'imperial']);
+  const database = getPool();
+
+  const normalized = {
+    coldTolerance: updates.coldTolerance,
+    preferredActivity: updates.preferredActivity,
+    preferredActivityTime: updates.preferredActivityTime,
+    units: updates.units,
+    notificationsEnabled: updates.notificationsEnabled,
+  };
+
+  const safeColdTolerance = typeof normalized.coldTolerance === 'string' && allowedColdTolerance.has(normalized.coldTolerance.toLowerCase())
+    ? normalized.coldTolerance.toLowerCase()
+    : undefined;
+  const safeUnits = typeof normalized.units === 'string' && allowedUnits.has(normalized.units.toLowerCase())
+    ? normalized.units.toLowerCase()
+    : undefined;
+  const safePreferredActivity = typeof normalized.preferredActivity === 'string'
+    ? normalized.preferredActivity.trim() || null
+    : normalized.preferredActivity === null
+      ? null
+      : undefined;
+  const safePreferredActivityTime = typeof normalized.preferredActivityTime === 'string'
+    ? normalized.preferredActivityTime.trim() || null
+    : normalized.preferredActivityTime === null
+      ? null
+      : undefined;
+  const safeNotificationsEnabled = typeof normalized.notificationsEnabled === 'boolean'
+    ? normalized.notificationsEnabled
+    : undefined;
+
+  const merge = await getUserPreferences(userId);
+  const nextState = {
+    userId,
+    coldTolerance: safeColdTolerance || merge.coldTolerance || 'medium',
+    preferredActivity: safePreferredActivity === undefined
+      ? merge.preferredActivity ?? null
+      : safePreferredActivity,
+    preferredActivityTime: safePreferredActivityTime === undefined
+      ? merge.preferredActivityTime ?? null
+      : safePreferredActivityTime,
+    units: safeUnits || merge.units || 'metric',
+    notificationsEnabled: safeNotificationsEnabled ?? merge.notificationsEnabled ?? true,
+  };
+
+  if (database) {
+    await database.execute(`
+      INSERT INTO user_preferences (id, user_id, cold_tolerance, preferred_activity, preferred_activity_time, units, notifications_enabled)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        cold_tolerance = VALUES(cold_tolerance),
+        preferred_activity = VALUES(preferred_activity),
+        preferred_activity_time = VALUES(preferred_activity_time),
+        units = VALUES(units),
+        notifications_enabled = VALUES(notifications_enabled)
+    `, [
+      merge.id || randomUUID(),
+      userId,
+      nextState.coldTolerance,
+      nextState.preferredActivity,
+      nextState.preferredActivityTime,
+      nextState.units,
+      nextState.notificationsEnabled,
+    ]);
+
+    return nextState;
+  }
+
+  const existing = memoryStore.preferences.find((pref) => pref.user_id === userId);
+  const record = existing || {
+    id: randomUUID(),
+    user_id: userId,
+    cold_tolerance: 'medium',
+    preferred_activity: null,
+    preferred_activity_time: null,
+    units: 'metric',
+    notifications_enabled: true,
+  };
+
+  record.cold_tolerance = nextState.coldTolerance;
+  record.preferred_activity = nextState.preferredActivity;
+  record.preferred_activity_time = nextState.preferredActivityTime;
+  record.units = nextState.units;
+  record.notifications_enabled = nextState.notificationsEnabled;
+
+  if (!existing) memoryStore.preferences.push(record);
+
+  return {
+    userId: record.user_id,
+    coldTolerance: record.cold_tolerance,
+    preferredActivity: record.preferred_activity,
+    preferredActivityTime: record.preferred_activity_time,
+    units: record.units,
+    notificationsEnabled: record.notifications_enabled,
+  };
+}
+
 module.exports = {
   closeDatabase,
   createLocation,
@@ -303,4 +444,6 @@ module.exports = {
   createUser,
   findAlertById,
   listAlerts,
+  getUserPreferences,
+  upsertUserPreferences,
 };

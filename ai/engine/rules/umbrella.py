@@ -32,11 +32,21 @@ def _timing_phrase(timing: str | None, rain_cat: str | None) -> str:
 def umbrella_rules(weather: WeatherSnapshot) -> list[Recommendation]:
     probability = weather.rain_probability_percent
     rain_band = combined_rain_category(probability, weather.rain_intensity, weather.condition)
-    
-    if rain_band is None and probability is None and weather.rain_intensity is None and weather.condition is None:
+
+
+    condition_text = (weather.condition or "").lower()
+    has_rain_signal = (
+        probability is not None
+        or weather.rain_intensity is not None
+        or "rain" in condition_text
+        or "storm" in condition_text
+        or "shower" in condition_text
+    )
+
+    if not has_rain_signal and rain_band in {None, "no_rain"}:
         return []
 
-    # Default to no_rain if band isn't matched
+    # Default to no_rain if band isn't matched but the caller supplied rain-related data.
     if rain_band is None:
         rain_band = "no_rain"
 

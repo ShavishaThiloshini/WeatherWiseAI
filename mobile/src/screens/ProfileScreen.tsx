@@ -205,6 +205,16 @@ export function ProfileScreen({ navigation, onLogout }: Props) {
           />
         </PreferenceSection>
 
+        <PreferenceSection title="Weather assistant">
+          <Pressable style={styles.preferenceItem} onPress={() => navigation.navigate('Assistant')}>
+            <View>
+              <Text style={styles.preferenceLabel}>Ask WeatherWise AI</Text>
+              <Text style={styles.preferenceHint}>Get advice for your local weather</Text>
+            </View>
+            <Text style={styles.navArrow}>›</Text>
+          </Pressable>
+        </PreferenceSection>
+
         <PreferenceSection title="Location Settings">
           <Pressable style={styles.preferenceItem} onPress={() => navigation.navigate('SavedLocations')}>
             <View>
