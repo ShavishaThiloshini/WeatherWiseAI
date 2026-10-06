@@ -26,7 +26,6 @@ import { WeatherMapScreen } from '../screens/WeatherMapScreen';
 import { AIAssistantScreen } from '../screens/AIAssistantScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SafetyScreen } from '../screens/SafetyScreen';
-import { AuthScreen } from '../screens/AuthScreen';
 import { WeatherDetailsScreen } from '../screens/WeatherDetailsScreen';
 import { SavedLocationsScreen } from '../screens/SavedLocationsScreen';
 
@@ -51,7 +50,7 @@ export type RootStackParamList = {
 
 export type TravelMapStackParamList = {
   Travel: undefined;
-  Map: undefined;
+  Map: { latitude?: number; longitude?: number; label?: string } | undefined;
 };
 
 export type ProfileStackParamList = {
@@ -104,7 +103,7 @@ function TravelMapNavigator() {
 
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
-function ProfileNavigator({ onLogout }: { onLogout: () => void }) {
+function ProfileNavigator() {
   return (
     <ProfileStack.Navigator
       screenOptions={{
@@ -118,7 +117,7 @@ function ProfileNavigator({ onLogout }: { onLogout: () => void }) {
       }}
     >
       <ProfileStack.Screen name="ProfileHome" options={{ title: 'Profile & Settings' }}>
-        {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
+        {(props) => <ProfileScreen {...props} />}
       </ProfileStack.Screen>
       <ProfileStack.Screen name="SavedLocations" component={SavedLocationsScreen} options={{ title: 'Saved Locations' }} />
       <ProfileStack.Screen name="Plants" component={PlantsScreen} options={{ title: 'Plant Care' }} />
@@ -134,7 +133,7 @@ function ProfileNavigator({ onLogout }: { onLogout: () => void }) {
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
-function MainTabs({ onLogout }: { onLogout: () => void }) {
+function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -165,26 +164,14 @@ function MainTabs({ onLogout }: { onLogout: () => void }) {
       <Tab.Screen name="TravelMap" component={TravelMapNavigator} options={{ title: 'Travel & Map' }} />
       <Tab.Screen
         name="Profile"
-        children={() => <ProfileNavigator onLogout={onLogout} />}
+        children={() => <ProfileNavigator />}
         options={{ title: 'Profile' }}
       />
     </Tab.Navigator>
   );
 }
 
-export function RootNavigator({
-  token,
-  onAuthenticate,
-  onLogout,
-}: {
-  token: string | null;
-  onAuthenticate: (token: string) => void;
-  onLogout: () => void;
-}) {
-  if (!token) {
-    return <AuthScreen onAuthenticate={onAuthenticate} />;
-  }
-
+export function RootNavigator() {
   return (
     <NavigationContainer>
       <RootStack.Navigator
@@ -196,7 +183,7 @@ export function RootNavigator({
         }}
       >
         <RootStack.Screen name="MainTabs" options={{ headerShown: false }}>
-          {() => <MainTabs onLogout={onLogout} />}
+          {() => <MainTabs />}
         </RootStack.Screen>
         <RootStack.Screen name="WeatherDetails" component={WeatherDetailsScreen} options={{ title: 'Weather Details' }} />
       </RootStack.Navigator>

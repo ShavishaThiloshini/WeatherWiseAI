@@ -244,7 +244,14 @@ export function TravelScreen({ navigation }: Props) {
         </View>
       )}
 
-      <Pressable style={styles.mapLink} onPress={() => navigation.navigate('Map')}>
+      <Pressable
+        style={styles.mapLink}
+        onPress={() => navigation.navigate('Map', comparison ? {
+          latitude: comparison.destination.latitude,
+          longitude: comparison.destination.longitude,
+          label: comparison.destination.displayName,
+        } : undefined)}
+      >
         <Ionicons name="map-outline" size={17} color={COLORS.info} />
         <Text style={styles.mapLinkText}>Open weather map</Text>
         <Ionicons name="chevron-forward" size={16} color={COLORS.textSecondary} />

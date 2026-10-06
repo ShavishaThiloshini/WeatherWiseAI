@@ -1,6 +1,5 @@
 const express = require('express');
 
-const { requireAuth } = require('../middleware/auth');
 const { getCurrentWeather, getForecastWeather, getHourlyForecast, getDestinationWeather } = require('../services/weather.service');
 
 const router = express.Router();
@@ -24,7 +23,7 @@ function validateCoordinates(lat, lon) {
   }
 }
 
-router.use(requireAuth);
+// Weather data is read-only and is available to the app's guest mode.
 
 router.get('/current', async (req, res, next) => {
   try {

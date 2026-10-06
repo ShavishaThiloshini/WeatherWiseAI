@@ -1,0 +1,10 @@
+const express = require('express');
+const { requireAuth } = require('../middleware/auth');
+const { createPlant, deletePlant, listPlants, waterPlant } = require('../db');
+const router = express.Router();
+router.use(requireAuth);
+router.get('/', async (req, res, next) => { try { res.json({ plants: await listPlants(req.user.id) }); } catch (error) { next(error); } });
+router.post('/', async (req, res, next) => { try { const { name, species, locationId, wateringEveryDays } = req.body || {}; if (typeof name !== 'string' || !name.trim() || !Number.isInteger(Number(wateringEveryDays)) || Number(wateringEveryDays) < 1 || Number(wateringEveryDays) > 365) return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Name and a watering interval between 1 and 365 days are required' } }); const plant = await createPlant(req.user.id, { name, species, locationId, wateringEveryDays }); if (!plant) return res.status(400).json({ error: { code: 'LOCATION_REQUIRED', message: 'Save a location before adding a plant' } }); res.status(201).json({ plant }); } catch (error) { next(error); } });
+router.post('/:id/water', async (req, res, next) => { try { const plant = await waterPlant(req.user.id, req.params.id); if (!plant) return res.status(404).json({ error: { code: 'PLANT_NOT_FOUND', message: 'Plant not found' } }); res.json({ plant }); } catch (error) { next(error); } });
+router.delete('/:id', async (req, res, next) => { try { if (!await deletePlant(req.user.id, req.params.id)) return res.status(404).json({ error: { code: 'PLANT_NOT_FOUND', message: 'Plant not found' } }); res.status(204).send(); } catch (error) { next(error); } });
+module.exports = router;

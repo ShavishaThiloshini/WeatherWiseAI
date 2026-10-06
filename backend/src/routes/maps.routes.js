@@ -1,6 +1,5 @@
 const express = require('express');
 
-const { requireAuth } = require('../middleware/auth');
 const { getMapWeather } = require('../services/weather.service');
 const { reverseGeocode, searchPlaces } = require('../services/maps-provider.service');
 
@@ -19,7 +18,7 @@ function validateCoordinates(latitudeValue, longitudeValue) {
   return { latitude, longitude };
 }
 
-router.use(requireAuth);
+// Search, reverse geocoding, and map weather are read-only guest features.
 
 router.get('/search', async (req, res, next) => {
   try {

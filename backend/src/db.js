@@ -8,6 +8,7 @@ const memoryStore = {
   locations: [],
   alerts: [],
   preferences: [],
+  plants: [],
 };
 
 let pool;
@@ -44,7 +45,44 @@ function resetMemoryStore() {
   memoryStore.locations = [];
   memoryStore.alerts = [];
   memoryStore.preferences = [];
+  memoryStore.plants = [];
 }
+
+function toPlant(record) {
+  return { id: record.id, name: record.name, species: record.species_type || '', locationId: record.location_id,
+    location: record.location_label || '', wateringEveryDays: Number(record.watering_interval_days),
+    lastWateredAt: record.last_watered_at || null, createdAt: record.created_at };
+}
+
+async function listPlants(userId) {
+  const database = getPool();
+  if (database) {
+    const [rows] = await database.query(`SELECT p.id, p.name, p.species_type, p.location_id, p.watering_interval_days, p.last_watered_at, p.created_at, l.label AS location_label FROM plants p INNER JOIN locations l ON l.id = p.location_id WHERE p.user_id = ? ORDER BY p.created_at DESC`, [userId]);
+    return rows.map(toPlant);
+  }
+  return memoryStore.plants.filter((plant) => plant.user_id === userId).map(toPlant);
+}
+
+async function createPlant(userId, plant) {
+  const locations = await listLocations(userId);
+  const location = locations.find((item) => String(item.id) === String(plant.locationId)) || locations.find((item) => item.isDefault);
+  if (!location) return null;
+  const record = { id: randomUUID(), user_id: userId, location_id: location.id, location_label: location.label,
+    name: String(plant.name).trim(), species_type: String(plant.species || '').trim() || null,
+    watering_interval_days: Number(plant.wateringEveryDays), last_watered_at: new Date().toISOString(), created_at: new Date().toISOString() };
+  const database = getPool();
+  if (database) await database.execute('INSERT INTO plants (id, user_id, location_id, name, species_type, watering_interval_days, last_watered_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [record.id, record.user_id, record.location_id, record.name, record.species_type, record.watering_interval_days, record.last_watered_at]);
+  else memoryStore.plants.push(record);
+  return toPlant(record);
+}
+
+async function waterPlant(userId, plantId) {
+  const timestamp = new Date().toISOString(); const database = getPool();
+  if (database) { const [result] = await database.execute('UPDATE plants SET last_watered_at = ? WHERE id = ? AND user_id = ?', [timestamp, plantId, userId]); if (!result.affectedRows) return null; return (await listPlants(userId)).find((plant) => plant.id === plantId) || null; }
+  const plant = memoryStore.plants.find((item) => item.id === plantId && item.user_id === userId); if (!plant) return null; plant.last_watered_at = timestamp; return toPlant(plant);
+}
+
+async function deletePlant(userId, plantId) { const database = getPool(); if (database) { const [result] = await database.execute('DELETE FROM plants WHERE id = ? AND user_id = ?', [plantId, userId]); return Boolean(result.affectedRows); } const index = memoryStore.plants.findIndex((item) => item.id === plantId && item.user_id === userId); if (index < 0) return false; memoryStore.plants.splice(index, 1); return true; }
 
 async function findUserByEmail(email) {
   const normalized = String(email || '').trim().toLowerCase();
@@ -446,4 +484,8 @@ module.exports = {
   listAlerts,
   getUserPreferences,
   upsertUserPreferences,
+  listPlants,
+  createPlant,
+  waterPlant,
+  deletePlant,
 };

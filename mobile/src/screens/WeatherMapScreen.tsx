@@ -1,33 +1,12 @@
-/**
- * screens/WeatherMapScreen.tsx
- * Placeholder screen for interactive weather map.
- * TODO (Day 2+): Integrate a map component (e.g. react-native-maps) with
- *               weather overlays (rain radar, wind, temperature).
- */
-
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ScreenContainer } from '../components/ScreenContainer';
-import { COLORS, SPACING, TYPOGRAPHY } from '../constants/theme';
-
-export function WeatherMapScreen() {
-  return (
-    <ScreenContainer>
-      <View style={styles.center}>
-        <Text style={styles.emoji}>🗺️</Text>
-        <Text style={styles.title}>Weather Map Screen</Text>
-        <Text style={styles.subtitle}>
-          Interactive weather map with rain radar, wind, and temperature overlays will be displayed here.{'\n'}
-          (Day 2+ feature)
-        </Text>
-      </View>
-    </ScreenContainer>
-  );
-}
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.xl },
-  emoji: { fontSize: 56, marginBottom: SPACING.m },
-  title: { fontSize: TYPOGRAPHY.fontSize.xl, fontWeight: TYPOGRAPHY.fontWeight.bold, color: COLORS.textPrimary, marginBottom: SPACING.s },
-  subtitle: { fontSize: TYPOGRAPHY.fontSize.m, color: COLORS.textSecondary, textAlign: 'center', lineHeight: TYPOGRAPHY.fontSize.m * 1.6 },
-});
+import { BORDER_RADIUS, COLORS, SPACING, TYPOGRAPHY } from '../constants/theme';
+import { getCurrentLocation } from '../services/locationService';
+import { apiFetch } from '../services/api';
+import type { TravelMapStackParamList } from '../navigation/RootNavigator';
+type Props=NativeStackScreenProps<TravelMapStackParamList,'Map'>; type MapWeather={current:{temperature_c:number;conditionLabel:string;wind_speed_kmh:number;rain_probability_percent:number}};
+function worldPosition(latitude:number,longitude:number){const safe=Math.max(-85,Math.min(85,latitude));const x=((longitude+180)/360)*100;const radians=safe*Math.PI/180;const y=(1-Math.log(Math.tan(radians)+1/Math.cos(radians))/Math.PI)/2*100;return{left:`${Math.max(2,Math.min(92,x))}%`,top:`${Math.max(4,Math.min(86,y))}%`}}
+export function WeatherMapScreen({route}:Props){const supplied=route.params;const [place,setPlace]=React.useState(supplied?.label||'');const [point,setPoint]=React.useState<{latitude:number;longitude:number}|null>(supplied?.latitude!=null&&supplied.longitude!=null?{latitude:supplied.latitude,longitude:supplied.longitude}:null);const [weather,setWeather]=React.useState<MapWeather|null>(null);const [error,setError]=React.useState<string|null>(null);const [loading,setLoading]=React.useState(true);const load=React.useCallback(async()=>{setLoading(true);setError(null);try{let target=point;if(!target){const p=await getCurrentLocation();target={latitude:p.latitude,longitude:p.longitude};setPoint(target);setPlace(p.displayName)}const result=await apiFetch<MapWeather>(`/maps/weather?lat=${encodeURIComponent(target.latitude)}&lon=${encodeURIComponent(target.longitude)}`);setWeather(result)}catch(e){setError(e instanceof Error?e.message:'Unable to load the map.')}finally{setLoading(false)}},[point]);React.useEffect(()=>{void load()},[load]);const pin=point?worldPosition(point.latitude,point.longitude):null;return <ScreenContainer contentStyle={s.page}><Text style={s.title}>Weather map</Text><Text style={s.sub}>{supplied?.label?'Destination weather':'Global view with weather at your location'}</Text><View style={s.frame}><Image accessibilityLabel="World map" source={{uri:'https://tile.openstreetmap.org/0/0/0.png'}} style={s.map}/>{pin?<View style={[s.pin,pin as any]}><Text style={s.dot}>●</Text><Text style={s.label} numberOfLines={1}>{supplied?.label?'Destination':'Your location'}</Text></View>:null}</View>{loading?<View style={s.state}><ActivityIndicator color={COLORS.primary}/><Text style={s.sub}>Loading location…</Text></View>:null}{error?<View style={s.error}><Text style={s.text}>{error}</Text><Pressable onPress={()=>void load()}><Text style={s.retry}>Try again</Text></Pressable></View>:null}{weather?<View style={s.card}><Text style={s.sub}>{place}</Text><Text style={s.temp}>{Math.round(weather.current.temperature_c)}°C · {weather.current.conditionLabel}</Text><Text style={s.sub}>Rain {weather.current.rain_probability_percent}% · Wind {Math.round(weather.current.wind_speed_kmh)} km/h</Text></View>:null}<Text style={s.credit}>Map © OpenStreetMap contributors</Text></ScreenContainer>}
+const s=StyleSheet.create({page:{paddingTop:SPACING.m,gap:SPACING.m},title:{color:COLORS.textPrimary,fontSize:TYPOGRAPHY.fontSize.xl,fontWeight:TYPOGRAPHY.fontWeight.bold},sub:{color:COLORS.textSecondary,fontSize:TYPOGRAPHY.fontSize.s},frame:{height:330,borderRadius:BORDER_RADIUS.m,overflow:'hidden',backgroundColor:'#BBDCF4',position:'relative'},map:{height:'100%',width:'100%'},pin:{position:'absolute',alignItems:'center',maxWidth:100,transform:[{translateX:-25},{translateY:-14}]},dot:{fontSize:28,color:COLORS.danger,textShadowColor:COLORS.background,textShadowRadius:3},label:{color:COLORS.textPrimary,backgroundColor:COLORS.backgroundCard,paddingHorizontal:6,borderRadius:5,fontSize:11,fontWeight:'600'},state:{alignItems:'center',gap:SPACING.s},error:{padding:SPACING.m,borderRadius:BORDER_RADIUS.s,backgroundColor:'#3B2026',gap:SPACING.s},text:{color:COLORS.textPrimary},retry:{color:COLORS.info,fontWeight:TYPOGRAPHY.fontWeight.bold},card:{padding:SPACING.m,borderRadius:BORDER_RADIUS.m,backgroundColor:COLORS.backgroundCard,gap:SPACING.s},temp:{color:COLORS.textPrimary,fontSize:TYPOGRAPHY.fontSize.l,fontWeight:TYPOGRAPHY.fontWeight.bold},credit:{color:COLORS.textSecondary,fontSize:TYPOGRAPHY.fontSize.xs,textAlign:'center'}});

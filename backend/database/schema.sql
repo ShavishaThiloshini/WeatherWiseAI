@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS plants (
   location_id CHAR(36) NOT NULL,
   name VARCHAR(60) NOT NULL,
   species_type VARCHAR(60) NULL,
+  watering_interval_days SMALLINT UNSIGNED NOT NULL DEFAULT 7,
   last_watered_at TIMESTAMP NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_plants_user
