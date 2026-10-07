@@ -8,6 +8,7 @@ const memoryStore = {
   locations: [],
   alerts: [],
   preferences: [],
+  weatherHistory: [],
 };
 
 let pool;
@@ -44,6 +45,20 @@ function resetMemoryStore() {
   memoryStore.locations = [];
   memoryStore.alerts = [];
   memoryStore.preferences = [];
+  memoryStore.weatherHistory = [];
+}
+
+function normalizeWeatherHistoryRow(row) {
+  return {
+    ...row,
+    summaryDate: row.summaryDate instanceof Date
+      ? row.summaryDate.toISOString().slice(0, 10)
+      : String(row.summaryDate).slice(0, 10),
+    avgTemperatureC: row.avgTemperatureC === null ? null : Number(row.avgTemperatureC),
+    maxTemperatureC: row.maxTemperatureC === null ? null : Number(row.maxTemperatureC),
+    minTemperatureC: row.minTemperatureC === null ? null : Number(row.minTemperatureC),
+    totalRainMm: row.totalRainMm === null ? null : Number(row.totalRainMm),
+  };
 }
 
 async function findUserByEmail(email) {
@@ -231,6 +246,8 @@ async function deleteLocation(userId, locationId) {
   if (index === -1) return false;
   const wasDefault = memoryStore.locations[index].is_default;
   memoryStore.locations.splice(index, 1);
+  memoryStore.weatherHistory = memoryStore.weatherHistory
+    .filter((record) => record.location_id !== locationId);
   if (wasDefault) {
     const nextDefault = memoryStore.locations
       .filter((location) => location.user_id === userId)
@@ -288,6 +305,162 @@ async function listAlerts(userId, { locationId, activeOnly = true } = {}) {
 async function findAlertById(userId, alertId) {
   const alerts = await listAlerts(userId, { activeOnly: false });
   return alerts.find((alert) => alert.id === alertId) || null;
+}
+
+async function upsertWeatherHistory(userId, locationId, summary) {
+  const database = getPool();
+  const record = {
+    id: randomUUID(),
+    location_id: locationId,
+    summary_date: summary.summaryDate,
+    avg_temperature_c: summary.avgTemperatureC,
+    max_temperature_c: summary.maxTemperatureC,
+    min_temperature_c: summary.minTemperatureC,
+    total_rain_mm: summary.totalRainMm,
+    dominant_condition: summary.dominantCondition,
+  };
+
+  if (database) {
+    const [locations] = await database.query(
+      'SELECT id FROM locations WHERE id = ? AND user_id = ? LIMIT 1',
+      [locationId, userId],
+    );
+    if (locations.length === 0) return null;
+
+    await database.execute(`
+      INSERT INTO weather_history (
+        id, location_id, summary_date, avg_temperature_c, max_temperature_c,
+        min_temperature_c, total_rain_mm, dominant_condition
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        avg_temperature_c = VALUES(avg_temperature_c),
+        max_temperature_c = VALUES(max_temperature_c),
+        min_temperature_c = VALUES(min_temperature_c),
+        total_rain_mm = VALUES(total_rain_mm),
+        dominant_condition = VALUES(dominant_condition)
+    `, [
+      record.id,
+      record.location_id,
+      record.summary_date,
+      record.avg_temperature_c,
+      record.max_temperature_c,
+      record.min_temperature_c,
+      record.total_rain_mm,
+      record.dominant_condition,
+    ]);
+
+    const [rows] = await database.query(`
+      SELECT h.id, h.location_id AS locationId, l.label AS locationLabel,
+        h.summary_date AS summaryDate,
+        h.avg_temperature_c AS avgTemperatureC,
+        h.max_temperature_c AS maxTemperatureC,
+        h.min_temperature_c AS minTemperatureC,
+        h.total_rain_mm AS totalRainMm,
+        h.dominant_condition AS dominantCondition
+      FROM weather_history h
+      INNER JOIN locations l ON l.id = h.location_id
+      WHERE h.location_id = ? AND h.summary_date = ? AND l.user_id = ?
+      LIMIT 1
+    `, [locationId, summary.summaryDate, userId]);
+    return rows[0] ? normalizeWeatherHistoryRow(rows[0]) : null;
+  }
+
+  const location = memoryStore.locations.find(
+    (item) => item.id === locationId && item.user_id === userId,
+  );
+  if (!location) return null;
+
+  const existing = memoryStore.weatherHistory.find(
+    (item) => item.location_id === locationId && item.summary_date === summary.summaryDate,
+  );
+  if (existing) {
+    Object.assign(existing, record, { id: existing.id });
+  } else {
+    memoryStore.weatherHistory.push(record);
+  }
+  const saved = existing || record;
+  return {
+    id: saved.id,
+    locationId: saved.location_id,
+    locationLabel: location.label,
+    summaryDate: saved.summary_date,
+    avgTemperatureC: saved.avg_temperature_c,
+    maxTemperatureC: saved.max_temperature_c,
+    minTemperatureC: saved.min_temperature_c,
+    totalRainMm: saved.total_rain_mm,
+    dominantCondition: saved.dominant_condition,
+  };
+}
+
+async function listWeatherHistory(userId, { locationId, from, to, limit, offset }) {
+  const database = getPool();
+  if (database) {
+    const conditions = ['l.user_id = ?'];
+    const values = [userId];
+    if (locationId) {
+      conditions.push('h.location_id = ?');
+      values.push(locationId);
+    }
+    if (from) {
+      conditions.push('h.summary_date >= ?');
+      values.push(from);
+    }
+    if (to) {
+      conditions.push('h.summary_date <= ?');
+      values.push(to);
+    }
+    const where = conditions.join(' AND ');
+    const [countRows] = await database.query(`
+      SELECT COUNT(*) AS total
+      FROM weather_history h
+      INNER JOIN locations l ON l.id = h.location_id
+      WHERE ${where}
+    `, values);
+    const [rows] = await database.query(`
+      SELECT h.id, h.location_id AS locationId, l.label AS locationLabel,
+        h.summary_date AS summaryDate,
+        h.avg_temperature_c AS avgTemperatureC,
+        h.max_temperature_c AS maxTemperatureC,
+        h.min_temperature_c AS minTemperatureC,
+        h.total_rain_mm AS totalRainMm,
+        h.dominant_condition AS dominantCondition
+      FROM weather_history h
+      INNER JOIN locations l ON l.id = h.location_id
+      WHERE ${where}
+      ORDER BY h.summary_date DESC, h.id ASC
+      LIMIT ? OFFSET ?
+    `, [...values, limit, offset]);
+    return {
+      history: rows.map(normalizeWeatherHistoryRow),
+      total: Number(countRows[0].total),
+    };
+  }
+
+  const locations = new Map(
+    memoryStore.locations
+      .filter((location) => location.user_id === userId)
+      .map((location) => [location.id, location]),
+  );
+  const filtered = memoryStore.weatherHistory
+    .filter((record) => locations.has(record.location_id))
+    .filter((record) => !locationId || record.location_id === locationId)
+    .filter((record) => !from || record.summary_date >= from)
+    .filter((record) => !to || record.summary_date <= to)
+    .sort((left, right) => right.summary_date.localeCompare(left.summary_date) || left.id.localeCompare(right.id));
+  return {
+    history: filtered.slice(offset, offset + limit).map((record) => ({
+      id: record.id,
+      locationId: record.location_id,
+      locationLabel: locations.get(record.location_id).label,
+      summaryDate: record.summary_date,
+      avgTemperatureC: record.avg_temperature_c,
+      maxTemperatureC: record.max_temperature_c,
+      minTemperatureC: record.min_temperature_c,
+      totalRainMm: record.total_rain_mm,
+      dominantCondition: record.dominant_condition,
+    })),
+    total: filtered.length,
+  };
 }
 
 async function getUserPreferences(userId) {
@@ -444,6 +617,8 @@ module.exports = {
   createUser,
   findAlertById,
   listAlerts,
+  listWeatherHistory,
+  upsertWeatherHistory,
   getUserPreferences,
   upsertUserPreferences,
 };

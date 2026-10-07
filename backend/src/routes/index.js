@@ -6,6 +6,7 @@ const mapsRouter = require('./maps.routes');
 const weatherRouter = require('./weather.routes');
 const alertsRouter = require('./alerts.routes');
 const usersRouter = require('./users.routes');
+const historyRouter = require('./history.routes');
 const { requireAuth } = require('../middleware/auth');
 const { getCurrentWeather } = require('../services/weather.service');
 const { assessDestinationWeather } = require('../services/travel-risk.service');
@@ -87,6 +88,7 @@ router.use('/maps', mapsRouter);
 router.use('/weather', weatherRouter);
 router.use('/alerts', alertsRouter);
 router.use('/users', usersRouter);
+router.use('/history', historyRouter);
 
 router.post('/travel/compare', requireAuth, async (req, res, next) => {
   try {

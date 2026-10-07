@@ -54,6 +54,8 @@ factors, and indexes for user, location, cache, alert, and conversation reads.
 - `GET /api/v1/maps/search?q=` - authenticated place search through the maps provider
 - `GET /api/v1/maps/reverse?lat=&lon=` - authenticated reverse geocoding
 - `GET /api/v1/maps/weather?lat=&lon=` - authenticated map center with current and hourly weather
+- `GET /api/v1/history` - authenticated, paginated daily weather history, optionally filtered by `locationId`, `from`, and `to`
+- `POST /api/v1/history` - create or replace an owned location's daily weather summary
 
 AI/dashboard requests must include either an owned `location_id` or a `location` object,
 plus a `current` weather object. Live weather is supplied by the weather provider adapter.
