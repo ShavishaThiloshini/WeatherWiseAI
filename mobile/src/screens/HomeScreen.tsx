@@ -33,98 +33,17 @@ import { ColdWeatherWarningCard } from '../components/ColdWeatherWarningCard';
 import { SevereWeatherAlerts } from '../components/SevereWeatherAlerts';
 import type { ActivityRecommendation } from '../components/ActivityRecommendationCard';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants/theme';
-import { getCurrentWeather, getDashboardRecommendations, getForecast, toRecommendationForecast, getHeatWarningData, getSevereWeatherAlerts } from '../services/weatherService';
+import { getActivityRecommendations, getCurrentWeather, getDashboardRecommendations, getForecast, toRecommendationForecast, getHeatWarningData, getSevereWeatherAlerts } from '../services/weatherService';
 import { getCurrentLocation, listSavedLocations } from '../services/locationService';
 import type { ForecastData, LocationData, RecommendationResponse, WeatherData, HeatData, SevereWeatherData } from '../types';
 import type { RootStackParamList, RootTabParamList } from '../navigation/RootNavigator';
 import { buildFallbackSmartAdviceCards, findSmartAdviceCards } from '../utils/smartAdvice';
 
-
-// ---------------------------------------------------------------------------
-// [MOCK] Activity recommendations helper
-// Seeded from live weather to give realistic output while the AI endpoint
-// for activity scoring is pending. Replace this function body with an API
-// call to /api/v1/activity (or similar) when available.
-// ---------------------------------------------------------------------------
-function buildActivityRecommendations(weather: WeatherData | null): ActivityRecommendation[] {
-  const ctx = weather
-    ? {
-        temperatureC: weather.temperatureC,
-        feelsLikeC: weather.feelsLikeC,
-        rainProbability: weather.rainProbability,
-        windSpeedKmh: weather.windSpeedKmh,
-        uvIndex: weather.uvIndex,
-      }
-    : null;
-
-  const t = weather?.feelsLikeC ?? weather?.temperatureC ?? 20;
-  const rain = weather?.rainProbability ?? 0;
-  const wind = weather?.windSpeedKmh ?? 0;
-  const uv = weather?.uvIndex ?? 0;
-
-  // Derive simple suitability and score values from current conditions.
-  // These are intentional mock heuristics — the AI layer will replace them.
-  function walkingSuitability(): { suitability: ActivityRecommendation['suitability']; score: number; rec: string; reason: string } {
-    if (rain >= 80 || wind >= 60) return { suitability: 'avoid', score: 20, rec: 'Avoid walking today due to severe conditions.', reason: 'High rain probability or strong winds make walking unsafe.' };
-    if (rain >= 60 || wind >= 40 || t >= 38) return { suitability: 'poor', score: 38, rec: 'Walking is less suitable right now.', reason: 'Conditions are uncomfortable — consider a short outing only.' };
-    if (rain >= 40 || t >= 34 || uv >= 8) return { suitability: 'moderate', score: 55, rec: 'Walking is possible. Take precautions.', reason: 'Rain risk or heat — go early or late, carry water and an umbrella.' };
-    if (t >= 26 || uv >= 6) return { suitability: 'good', score: 72, rec: 'Good conditions for a walk.', reason: 'Warm weather — best done before 10 am or after 4 pm to avoid peak UV.' };
-    return { suitability: 'excellent', score: 90, rec: 'Great conditions for walking!', reason: 'Comfortable temperature, low rain risk and manageable UV levels.' };
-  }
-
-  function runningSuitability(): { suitability: ActivityRecommendation['suitability']; score: number; rec: string; reason: string } {
-    if (rain >= 80 || wind >= 60) return { suitability: 'avoid', score: 15, rec: 'Avoid running in these conditions.', reason: 'Severe rain or strong winds present a safety risk.' };
-    if (rain >= 60 || wind >= 40 || t >= 35) return { suitability: 'poor', score: 32, rec: 'Running is not ideal today.', reason: 'Heavy rain or extreme heat will negatively affect performance and safety.' };
-    if (rain >= 40 || t >= 30 || uv >= 8) return { suitability: 'moderate', score: 50, rec: 'Running is possible with care.', reason: 'Hydrate well, wear sunscreen, and avoid peak heat hours.' };
-    if (t >= 24 || uv >= 6) return { suitability: 'good', score: 68, rec: 'Good running conditions.', reason: 'Warm day — go early morning for the best experience.' };
-    return { suitability: 'excellent', score: 88, rec: 'Excellent running conditions!', reason: 'Cool, low-risk weather makes this a great time to run.' };
-  }
-
-  function cyclingSuitability(): { suitability: ActivityRecommendation['suitability']; score: number; rec: string; reason: string } {
-    if (wind >= 60 || rain >= 80) return { suitability: 'avoid', score: 10, rec: 'Do not cycle in these conditions.', reason: 'High winds or heavy rain create serious road hazards for cyclists.' };
-    if (wind >= 40 || rain >= 60 || t >= 37) return { suitability: 'poor', score: 28, rec: 'Cycling is not recommended today.', reason: 'Strong crosswinds, wet roads or extreme heat make cycling risky.' };
-    if (wind >= 25 || rain >= 40 || t >= 32 || uv >= 8) return { suitability: 'moderate', score: 52, rec: 'Cycle with caution.', reason: 'Elevated wind, rain chance or UV — wear protective gear and plan your route carefully.' };
-    if (wind >= 15 || t >= 26) return { suitability: 'good', score: 74, rec: 'Good cycling conditions.', reason: 'Light breeze and warm weather — stay hydrated and wear a helmet.' };
-    return { suitability: 'excellent', score: 92, rec: 'Perfect day for cycling!', reason: 'Calm winds and comfortable temperatures make for an enjoyable ride.' };
-  }
-
-  const walking = walkingSuitability();
-  const running = runningSuitability();
-  const cycling = cyclingSuitability();
-
-  return [
-    {
-      activityId: 'walking',
-      activityName: 'Walking',
-      icon: '🚶',
-      score: weather ? walking.score : null,
-      suitability: walking.suitability,
-      recommendation: walking.rec,
-      reason: walking.reason,
-      weatherContext: ctx,
-    },
-    {
-      activityId: 'running',
-      activityName: 'Running',
-      icon: '🏃',
-      score: weather ? running.score : null,
-      suitability: running.suitability,
-      recommendation: running.rec,
-      reason: running.reason,
-      weatherContext: ctx,
-    },
-    {
-      activityId: 'cycling',
-      activityName: 'Cycling',
-      icon: '🚴',
-      score: weather ? cycling.score : null,
-      suitability: cycling.suitability,
-      recommendation: cycling.rec,
-      reason: cycling.reason,
-      weatherContext: ctx,
-    },
-  ];
-}
+const ACTIVITY_PLACEHOLDERS: ActivityRecommendation[] = [
+  { activityId: 'walking', activityName: 'Walking', icon: '🚶', score: null, suitability: 'moderate', recommendation: 'Recommendation unavailable.' },
+  { activityId: 'running', activityName: 'Running', icon: '🏃', score: null, suitability: 'moderate', recommendation: 'Recommendation unavailable.' },
+  { activityId: 'cycling', activityName: 'Cycling', icon: '🚴', score: null, suitability: 'moderate', recommendation: 'Recommendation unavailable.' },
+];
 
 export function HomeScreen() {
   const navigation = useNavigation<CompositeNavigationProp<
@@ -139,6 +58,9 @@ export function HomeScreen() {
   const [isWeatherLoading, setIsWeatherLoading] = React.useState(false);
   const [recommendations, setRecommendations] = React.useState<RecommendationResponse['recommendations']>([]);
   const [recommendationAnalysis, setRecommendationAnalysis] = React.useState<RecommendationResponse['analysis'] | null>(null);
+  const [activityRecommendations, setActivityRecommendations] = React.useState<ActivityRecommendation[]>([]);
+  const [activityLoading, setActivityLoading] = React.useState(false);
+  const [activityError, setActivityError] = React.useState<string | null>(null);
   const [heatData, setHeatData] = React.useState<HeatData | null>(null);
   const [heatLoading, setHeatLoading] = React.useState(false);
   const [heatError, setHeatError] = React.useState<string | null>(null);
@@ -202,6 +124,19 @@ export function HomeScreen() {
     }
   }, []);
 
+  const loadActivityRecommendations = React.useCallback(async (nextLocation: LocationData) => {
+    setActivityLoading(true);
+    setActivityError(null);
+    setActivityRecommendations([]);
+    try {
+      setActivityRecommendations(await getActivityRecommendations(nextLocation.latitude, nextLocation.longitude));
+    } catch (error) {
+      setActivityError(error instanceof Error ? error.message : 'Unable to load activity recommendations.');
+    } finally {
+      setActivityLoading(false);
+    }
+  }, []);
+
   const loadHeatData = React.useCallback(async (nextLocation: LocationData) => {
     setHeatLoading(true);
     setHeatError(null);
@@ -231,10 +166,11 @@ export function HomeScreen() {
   React.useEffect(() => {
     if (location) {
       void loadWeather(location);
+      void loadActivityRecommendations(location);
       void loadHeatData(location);
       void loadSevereWeather(location);
     }
-  }, [location, loadWeather, loadHeatData, loadSevereWeather]);
+  }, [location, loadWeather, loadActivityRecommendations, loadHeatData, loadSevereWeather]);
 
   React.useEffect(() => {
     if (!location || !weather) return;
@@ -421,17 +357,14 @@ export function HomeScreen() {
       <SectionHeader title="Cold Weather" />
       <ColdWeatherWarningCard weather={weather} forecast={forecast} />
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Outdoor Activity Recommendations — Day 14                           */}
-      {/* Mock data seeded from live weather; replace with AI endpoint later. */}
-      {/* ------------------------------------------------------------------ */}
       <SectionHeader title="Outdoor Activity" />
 
-      {buildActivityRecommendations(weather).map((rec) => (
+      {(activityRecommendations.length ? activityRecommendations : ACTIVITY_PLACEHOLDERS).map((rec) => (
         <ActivityRecommendationCard
           key={rec.activityId}
           recommendation={rec}
-          loading={isWeatherLoading}
+          loading={activityLoading}
+          error={activityError}
         />
       ))}
 

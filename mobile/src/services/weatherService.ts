@@ -7,6 +7,7 @@ import type { WeatherData, ForecastData, RecommendationResponse, HeatData } from
 import type { TravelRiskComparison } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch } from './api';
+import { normalizeActivityRecommendations } from './activityMapping';
 export { toRecommendationForecast } from './forecastMapping';
 import { normalizeCurrentWeather } from './weatherNormalization';
 import type { OpenMeteoCurrentResponse } from './weatherNormalization';
@@ -270,6 +271,16 @@ export async function compareTravelRisk(
     method: 'POST',
     body: JSON.stringify({ origin, destination }),
   });
+}
+
+export async function getActivityRecommendations(
+  latitude: number,
+  longitude: number,
+): Promise<import('../components/ActivityRecommendationCard').ActivityRecommendation[]> {
+  const response = await apiFetch<unknown>(
+    `/weather/activity?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`,
+  );
+  return normalizeActivityRecommendations(response);
 }
 
 /**

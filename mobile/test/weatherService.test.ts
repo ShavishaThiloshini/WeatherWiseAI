@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { normalizeCurrentWeather } from '../src/services/weatherNormalization.ts';
 import { toRecommendationForecast } from '../src/services/forecastMapping.ts';
+import { normalizeActivityRecommendations } from '../src/services/activityMapping.ts';
 
 test('recommendation forecast preserves the next 24 hourly rain values', () => {
   const forecast = toRecommendationForecast({
@@ -82,4 +83,42 @@ test('current weather normalization clamps invalid percentage values', () => {
   assert.equal(weather.humidity, 100);
   assert.equal(weather.rainProbability, 0);
   assert.equal(weather.uvIndex, 0);
+});
+
+test('activity recommendations normalize complete backend data', () => {
+  const recommendations = normalizeActivityRecommendations({
+      activities: [
+        { activityId: 'walking', activityName: 'Walking', icon: '🚶', score: 72, suitability: 'good', recommendation: 'Good conditions for a walk.', reason: 'Mild weather.', weatherContext: { temperatureC: 26, rainProbability: 10 } },
+        { activityId: 'running', activityName: 'Running', icon: '🏃', score: 68, suitability: 'moderate', recommendation: 'Good running conditions.', reason: 'Warm day.' },
+        { activityId: 'cycling', activityName: 'Cycling', icon: '🚴', score: 74, suitability: 'good', recommendation: 'Good cycling conditions.', reason: 'Light breeze.' },
+      ],
+  });
+
+  assert.equal(recommendations.length, 3);
+  assert.equal(recommendations[0].score, 72);
+  assert.equal(recommendations[0].weatherContext?.temperatureC, 26);
+  assert.equal(recommendations[1].weatherContext, null);
+});
+
+test('activity recommendations reject incomplete backend data instead of showing unsafe scores', () => {
+  assert.throws(() => normalizeActivityRecommendations({
+    activities: [{
+      activityId: 'walking',
+      activityName: 'Walking',
+      icon: '🚶',
+      score: 95,
+      suitability: 'excellent',
+      recommendation: 'Great conditions.',
+    }],
+  }), /incomplete recommendation set/);
+});
+
+test('activity recommendations reject invalid weather context', () => {
+  assert.throws(() => normalizeActivityRecommendations({
+    activities: [
+      { activityId: 'walking', activityName: 'Walking', icon: '🚶', score: 72, suitability: 'good', recommendation: 'Walk.', weatherContext: { temperatureC: 'warm' } },
+      { activityId: 'running', activityName: 'Running', icon: '🏃', score: 68, suitability: 'moderate', recommendation: 'Run.' },
+      { activityId: 'cycling', activityName: 'Cycling', icon: '🚴', score: 74, suitability: 'good', recommendation: 'Cycle.' },
+    ],
+  }), /invalid weather context/);
 });
