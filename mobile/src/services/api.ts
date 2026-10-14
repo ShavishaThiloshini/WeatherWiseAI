@@ -62,6 +62,11 @@ export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise
     }
 
     return payload as T;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('The request timed out. Check your connection and try again.');
+    }
+    throw error;
   } finally {
     clearTimeout(timeoutId);
   }
