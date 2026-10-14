@@ -19,7 +19,7 @@ export function AuthScreen({ onAuthenticate }: { onAuthenticate: (token: string)
   const [feedback, setFeedback] = useState<{
     title: string;
     message: string;
-    kind: 'success' | 'error';
+    kind: 'error';
     secondaryAction?: () => void;
   } | null>(null);
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -28,14 +28,9 @@ export function AuthScreen({ onAuthenticate }: { onAuthenticate: (token: string)
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pendingToken, setPendingToken] = useState<string | null>(null);
 
   const closeFeedback = () => {
     setFeedback(null);
-    if (pendingToken) {
-      onAuthenticate(pendingToken);
-      setPendingToken(null);
-    }
   };
 
   const handleSubmit = async () => {
@@ -62,14 +57,7 @@ export function AuthScreen({ onAuthenticate }: { onAuthenticate: (token: string)
         ? await registerUser(name.trim(), normalizedEmail, password)
         : await loginUser(normalizedEmail, password);
 
-      setPendingToken(result.token);
-      setFeedback({
-        title: mode === 'register' ? 'Registration successful' : 'Login successful',
-        message: mode === 'register'
-          ? 'Your account has been created.'
-          : 'You are now signed in.',
-        kind: 'success',
-      });
+      onAuthenticate(result.token);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Please try again.';
       const isExistingAccount = mode === 'register' && /already exists/i.test(message);
@@ -173,7 +161,12 @@ export function AuthScreen({ onAuthenticate }: { onAuthenticate: (token: string)
           accessibilityRole="button"
           accessibilityLabel={mode === 'login' ? 'Log in' : 'Create account'}
         >
-          {isSubmitting ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.buttonText}>{mode === 'login' ? 'Log in' : 'Create account'}</Text>}
+          {isSubmitting ? (
+            <View style={styles.submittingContent}>
+              <ActivityIndicator color={COLORS.white} />
+              <Text style={styles.buttonText}>{mode === 'login' ? 'Signing in...' : 'Creating account...'}</Text>
+            </View>
+          ) : <Text style={styles.buttonText}>{mode === 'login' ? 'Log in' : 'Create account'}</Text>}
         </Pressable>
 
         <Pressable
@@ -195,9 +188,9 @@ export function AuthScreen({ onAuthenticate }: { onAuthenticate: (token: string)
         <View style={styles.modalBackdrop}>
           <View style={styles.feedbackDialog} accessibilityRole="alert" accessibilityLiveRegion="assertive">
             <MaterialCommunityIcons
-              name={feedback?.kind === 'success' ? 'check-circle-outline' : 'alert-circle-outline'}
+              name="alert-circle-outline"
               size={40}
-              color={feedback?.kind === 'success' ? COLORS.success : COLORS.danger}
+              color={COLORS.danger}
             />
             <Text style={styles.feedbackTitle}>{feedback?.title}</Text>
             <Text style={styles.feedbackMessage}>{feedback?.message}</Text>
@@ -219,9 +212,7 @@ export function AuthScreen({ onAuthenticate }: { onAuthenticate: (token: string)
               onPress={closeFeedback}
               accessibilityRole="button"
             >
-              <Text style={styles.feedbackButtonText}>
-                {pendingToken ? 'Continue' : 'OK'}
-              </Text>
+              <Text style={styles.feedbackButtonText}>OK</Text>
             </Pressable>
           </View>
         </View>
@@ -327,6 +318,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: SPACING.s,
     ...SHADOWS.subtle,
+  },
+  submittingContent: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: SPACING.s,
   },
   buttonPressed: {
     backgroundColor: COLORS.primaryDark,
