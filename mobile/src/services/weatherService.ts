@@ -9,8 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch } from './api';
 import { normalizeActivityRecommendations } from './activityMapping';
 export { toRecommendationForecast } from './forecastMapping';
-import { normalizeCurrentWeather } from './weatherNormalization';
-import type { OpenMeteoCurrentResponse } from './weatherNormalization';
+
 
 export const MOCK_WEATHER: WeatherData = {
   temperatureC: 29,
