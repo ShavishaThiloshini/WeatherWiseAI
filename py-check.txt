@@ -1,2 +1,0 @@
-Python 3.13.14
-FASTAPI_OK 0.115.6

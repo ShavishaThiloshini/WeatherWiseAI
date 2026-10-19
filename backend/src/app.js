@@ -1,10 +1,12 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const authRouter = require('./routes/auth.routes');
 const apiRouter = require('./routes');
 
 const app = express();
 
+app.use(helmet());
 app.use(express.json());
 app.use(cors());
 

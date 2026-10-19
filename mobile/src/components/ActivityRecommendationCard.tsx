@@ -165,7 +165,7 @@ export function ActivityRecommendationCard({
   loading = false,
   error = null,
 }: ActivityRecommendationCardProps) {
-  const { activityId, activityName, icon, score, suitability, recommendation: rec, reason, weatherContext } = recommendation;
+  const { activityName, icon, score, suitability, recommendation: rec, reason, weatherContext } = recommendation;
   const config = SUITABILITY_CONFIG[suitability] ?? SUITABILITY_CONFIG.moderate;
 
   if (loading) {

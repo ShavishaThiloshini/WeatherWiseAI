@@ -1,0 +1,30 @@
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+.env*.local
+*.pem
+*.key
+*.jks
+
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Build and runtime outputs
+dist/
+build/
+web-build/
+.expo/
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# IDE and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
