@@ -16,7 +16,7 @@
  */
 
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect, useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -46,6 +46,8 @@ const ACTIVITY_PLACEHOLDERS: ActivityRecommendation[] = [
 ];
 
 export function HomeScreen() {
+  const { width } = useWindowDimensions();
+  const metricCardWidth = width < 340 ? '100%' : width >= 720 ? '31%' : '48%';
   const navigation = useNavigation<CompositeNavigationProp<
     BottomTabNavigationProp<RootTabParamList, 'Home'>,
     NativeStackNavigationProp<RootStackParamList>
@@ -294,11 +296,11 @@ export function HomeScreen() {
         <>
           <SectionHeader title="Current Conditions" />
           <View style={styles.metricsGrid}>
-            <WeatherCard label="Humidity" value={`${weather.humidity}%`} icon="💧" accentColor={COLORS.info} style={styles.gridItem} />
-            <WeatherCard label="Wind" value={`${weather.windSpeedKmh} km/h`} subLabel={weather.windDirection} icon="🌬️" accentColor={COLORS.secondary} style={styles.gridItem} />
-            <WeatherCard label="UV Index" value={String(weather.uvIndex)} subLabel={uvLabel(weather.uvIndex)} icon="☀️" accentColor={COLORS.warning} style={styles.gridItem} />
-            <WeatherCard label="Rain" value={`${weather.rainProbability}%`} subLabel="Probability" icon="🌧️" accentColor={COLORS.primary} style={styles.gridItem} />
-            <WeatherCard label="Visibility" value={`${weather.visibilityKm} km`} icon="👁️" accentColor={COLORS.success} style={styles.gridItem} />
+            <WeatherCard label="Humidity" value={`${weather.humidity}%`} icon="💧" accentColor={COLORS.info} style={[styles.gridItem, { width: metricCardWidth }]} />
+            <WeatherCard label="Wind" value={`${weather.windSpeedKmh} km/h`} subLabel={weather.windDirection} icon="🌬️" accentColor={COLORS.secondary} style={[styles.gridItem, { width: metricCardWidth }]} />
+            <WeatherCard label="UV Index" value={String(weather.uvIndex)} subLabel={uvLabel(weather.uvIndex)} icon="☀️" accentColor={COLORS.warning} style={[styles.gridItem, { width: metricCardWidth }]} />
+            <WeatherCard label="Rain" value={`${weather.rainProbability}%`} subLabel="Probability" icon="🌧️" accentColor={COLORS.primary} style={[styles.gridItem, { width: metricCardWidth }]} />
+            <WeatherCard label="Visibility" value={`${weather.visibilityKm} km`} icon="👁️" accentColor={COLORS.success} style={[styles.gridItem, { width: metricCardWidth }]} />
           </View>
         </>
       ) : isWeatherLoading ? (
@@ -306,7 +308,7 @@ export function HomeScreen() {
           <SectionHeader title="Current Conditions" />
           <View style={styles.metricsGrid}>
             {[1, 2, 3, 4].map((item) => (
-              <View key={item} style={[styles.weatherSkeleton, styles.gridItem]} />
+              <View key={item} style={[styles.weatherSkeleton, styles.gridItem, { width: metricCardWidth }]} />
             ))}
           </View>
         </>
