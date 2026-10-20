@@ -3,31 +3,72 @@
  * Base API configuration for WeatherWise AI.
  */
 
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-export const API_BASE_URL = (() => {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, '');
+function getExpoLanAddress(): string | null {
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (!hostUri) return null;
+
+  try {
+    const hostname = new URL(`http://${hostUri}`).hostname;
+    const octets = hostname.split('.').map(Number);
+    if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
+      return null;
+    }
+
+    const [first, second] = octets;
+    const isPrivateAddress = first === 10
+      || (first === 172 && second >= 16 && second <= 31)
+      || (first === 192 && second === 168)
+      || (first === 169 && second === 254);
+
+    return isPrivateAddress ? hostname : null;
+  } catch {
+    return null;
   }
+}
+
+const expoLanAddress = getExpoLanAddress();
+
+export const API_BASE_URL = (() => {
+  const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
   if (Platform.OS === 'web') {
-    // Use localhost for browser-based Expo runs. 127.0.0.1 can fail in some browser/OS
-    // combinations, leading to the browser-level "Failed to fetch" error seen during sign-up.
-    return 'http://localhost:3000/api/v1';
+    return (configuredUrl || 'http://localhost:3000/api/v1').replace(/\/$/, '');
   }
 
-  // Use the Android emulator host when running on-device/native emulators.
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:3000/api/v1';
+  if (configuredUrl) {
+    const normalizedUrl = configuredUrl.replace(/\/$/, '');
+    if (expoLanAddress) {
+      try {
+        const url = new URL(normalizedUrl);
+        if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+          url.hostname = expoLanAddress;
+          return url.toString().replace(/\/$/, '');
+        }
+      } catch {
+        return normalizedUrl;
+      }
+    }
+    return normalizedUrl;
   }
 
-  // Native iOS/simulator devices need the computer's LAN address; 127.0.0.1 is the device itself.
-  return 'http://172.20.10.2:3000/api/v1';
+  if (expoLanAddress) {
+    return `http://${expoLanAddress}:3000/api/v1`;
+  }
+
+  // Fallback for Android emulators and iOS simulators when Expo has no LAN host.
+  return Platform.OS === 'android'
+    ? 'http://10.0.2.2:3000/api/v1'
+    : 'http://localhost:3000/api/v1';
 })();
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
 let authToken: string | null = null;
+
+class ApiResponseError extends Error {}
 
 export function setAuthToken(token: string | null) {
   authToken = token;
@@ -58,7 +99,7 @@ export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise
     const payload = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(payload?.error?.message || `API error: ${response.status} ${response.statusText}`);
+      throw new ApiResponseError(payload?.error?.message || `API error: ${response.status} ${response.statusText}`);
     }
 
     return payload as T;
@@ -66,7 +107,11 @@ export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('The request timed out. Check your connection and try again.');
     }
-    throw error;
+    if (error instanceof ApiResponseError) throw error;
+
+    throw new Error(
+      `Cannot reach the WeatherWise API at ${API_BASE_URL}. Start the backend with "npm run backend" and connect your phone and computer to the same Wi-Fi. If you are using Expo tunnel mode, set EXPO_PUBLIC_API_URL to your computer's LAN address.`,
+    );
   } finally {
     clearTimeout(timeoutId);
   }

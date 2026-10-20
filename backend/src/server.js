@@ -7,8 +7,8 @@ const port = Number(process.env.PORT || 3000);
 
 initializeDatabase()
   .then(() => {
-    app.listen(port, () => {
-      console.log(`WeatherWise AI API running on http://localhost:${port}`);
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`WeatherWise AI API listening on port ${port} (localhost and LAN)`);
     });
   })
   .catch((error) => {

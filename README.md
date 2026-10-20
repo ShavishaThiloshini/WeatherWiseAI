@@ -43,9 +43,24 @@ The API starts on `http://localhost:3000`.
 ```powershell
 cd mobile
 npm install
-npm start
+cd ..
+npm run mobile:tunnel
 ```
-Use the Expo Go app or an emulator to open the application.
+Scan the QR code printed in the terminal with Expo Go. The tunnel option works when
+the phone and development computer are not on the same Wi-Fi network. If they are on
+the same network, use `npm run mobile` from the repository root instead.
+
+Run Expo through these npm scripts so it uses the mobile app's installed Expo SDK.
+Do not run `npx expo start` from the repository root; Expo is installed under
+`mobile`, so `npx` at the root may try to download a different SDK version.
+
+For backend-backed features on a physical phone, keep the phone and computer on the
+same Wi-Fi and start the backend with `npm run backend`. In LAN mode the mobile app
+uses Expo's development host to find the computer's LAN address automatically. Expo
+tunnel mode exposes Metro only; set `EXPO_PUBLIC_API_URL` in `mobile/.env` to
+`http://<your-computer-LAN-IP>:3000/api/v1` if you use the tunnel. Restart Expo after
+changing the environment variable. If Windows Firewall asks, allow Node.js on private
+networks so the phone can reach the backend.
 
 ---
 

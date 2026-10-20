@@ -21,10 +21,12 @@ export default function App() {
   }, [token]);
 
   const handleAuthenticate = (nextToken: string) => {
+    setAuthToken(nextToken);
     setToken(nextToken);
   };
 
   const handleLogout = () => {
+    clearAuthToken();
     setToken(null);
   };
 
