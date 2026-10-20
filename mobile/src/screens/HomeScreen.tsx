@@ -503,14 +503,17 @@ const styles = StyleSheet.create({
 
   // Metrics grid
   metricsGrid: {
+    alignItems: 'stretch',
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: SPACING.s,
     marginBottom: SPACING.xs,
   },
   gridItem: {
-    flex: 1,
-    minWidth: '45%',
+    width: '48%',
+    minWidth: 0,
+    flexGrow: 0,
+    flexShrink: 0,
   },
   weatherSkeleton: {
     backgroundColor: COLORS.backgroundCard,
